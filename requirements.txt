@@ -1,14 +1,7 @@
-from fastapi import FastAPI, HTTPException, Form, Request, Response, status, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-import bcrypt
-import sqlite3
-import os
-import random
-import io
-import csv
-import shutil
-from datetime import datetime
-import pytz
-import httpx
+fastapi
+uvicorn
+pydantic
+bcrypt
+pytz
+python-multipart
+httpx
