@@ -12,6 +12,7 @@ import shutil
 from datetime import datetime
 import pytz
 import httpx
+from mangum import Mangum
 
 app = FastAPI(title="Hope Haven Foundation", version="15.1")
 
@@ -122,10 +123,6 @@ def init_db():
 
 init_db()
 
-@app.get("/ping")
-def ping_server():
-    return {"status": "alive"}
-
 def require_admin(request: Request):
     role = request.cookies.get("role")
     if role != "admin":
@@ -180,7 +177,10 @@ def receive_donation(data: DonationPayload):
 
 @app.post("/api/payment/azampay-stk")
 def request_azampay_stk(data: AzamPayStkPayload):
+    client_id = "d5317ff6-7d36-440d-8020-67b5f042f0f3"
     token = "1a6605bd-fee4-4eb2-a0e0-a4295b749caf"
+    
+    url = "https://sandbox.azampay.co.tz/api/v1/Checkout/SingleCheckout"
     
     payload = {
         "accountNumber": "HopeHavenFoundation",
@@ -190,6 +190,11 @@ def request_azampay_stk(data: AzamPayStkPayload):
         "provider": data.provider,
         "mobileNumber": data.phone_number,
         "additionalProperties": {}
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
     }
     
     try:
@@ -1324,8 +1329,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     """
     return html_content
 
+# Hii ndiyo Mangum handler inayowezesha Vercel kuendesha FastAPI app yako
+handler = Mangum(app)
+
 if __name__ == "__main__":
     import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
