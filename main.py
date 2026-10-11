@@ -122,6 +122,10 @@ def init_db():
 
 init_db()
 
+@app.get("/ping")
+def ping_server():
+    return {"status": "alive"}
+
 def require_admin(request: Request):
     role = request.cookies.get("role")
     if role != "admin":
@@ -176,10 +180,7 @@ def receive_donation(data: DonationPayload):
 
 @app.post("/api/payment/azampay-stk")
 def request_azampay_stk(data: AzamPayStkPayload):
-    client_id = "d5317ff6-7d36-440d-8020-67b5f042f0f3"
     token = "1a6605bd-fee4-4eb2-a0e0-a4295b749caf"
-    
-    url = "https://sandbox.azampay.co.tz/api/v1/Checkout/SingleCheckout"
     
     payload = {
         "accountNumber": "HopeHavenFoundation",
@@ -189,11 +190,6 @@ def request_azampay_stk(data: AzamPayStkPayload):
         "provider": data.provider,
         "mobileNumber": data.phone_number,
         "additionalProperties": {}
-    }
-    
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
     }
     
     try:
@@ -385,19 +381,21 @@ def auth_page(mode: str = "login", error: str = None, success: str = None, usern
     <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Hope Haven Foundation</title>
         <link rel="icon" type="image/jpeg" href="/static/brand/logo.jpg">
         <style>
             body {{
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 margin: 0;
-                padding: 0;
+                padding: 15px;
                 background-color: #0f172a;
                 color: #f8fafc;
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                height: 100vh;
+                min-height: 100vh;
+                box-sizing: border-box;
             }}
             .auth-card {{
                 background: rgba(30, 41, 59, 0.96);
@@ -407,6 +405,7 @@ def auth_page(mode: str = "login", error: str = None, success: str = None, usern
                 width: 100%;
                 max-width: 400px;
                 box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+                box-sizing: border-box;
             }}
             h2 {{ color: #60a5fa; text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: 700; }}
             .form-group {{ margin-bottom: 18px; }}
@@ -705,6 +704,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     <html lang="{current_lang}">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{t['title']}</title>
         <link rel="icon" type="image/jpeg" href="/static/brand/logo.jpg">
         <style>
@@ -918,6 +918,30 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             }}
             .social-links a:hover {{
                 text-decoration: underline;
+            }}
+
+            /* MOBILE RESPONSIVE FIXES */
+            @media (max-width: 768px) {{
+                body {{
+                    flex-direction: column;
+                    height: auto;
+                    overflow: auto;
+                }}
+                .sidebar {{
+                    width: 100%;
+                    height: auto;
+                }}
+                .main-content {{
+                    height: auto;
+                    padding: 15px;
+                }}
+                .card-container {{
+                    flex-direction: column;
+                }}
+                table {{
+                    display: block;
+                    overflow-x: auto;
+                }}
             }}
         </style>
     </head>
@@ -1299,3 +1323,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     </html>
     """
     return html_content
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
