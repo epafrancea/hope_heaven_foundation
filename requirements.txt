@@ -1,7 +1,7 @@
 fastapi
 uvicorn
-pydantic
 bcrypt
 pytz
-python-multipart
 httpx
+pydantic
+mangum
