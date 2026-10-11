@@ -16,6 +16,22 @@ from mangum import Mangum
 
 app = FastAPI(title="Hope Haven Foundation", version="15.1")
 
+# Hakikisha folda zipo
+if not os.path.exists("static"):
+    os.makedirs("static")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request):
+    return "<h1>Karibu Hope Haven Foundation kwenye Vercel!</h1>"
+
+# Hii ndiyo sehemu kuu inayofanya kazi kwenye Vercel Serverless
+def handler(request, context):
+    from mangum import Mangum
+    asgi_handler = Mangum(app)
+    return asgi_handler(request, context)
+    
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
     salt = bcrypt.gensalt()
