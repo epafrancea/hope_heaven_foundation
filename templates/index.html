@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hope Haven Charity Foundation</title>
+    <style>
+        /* Modern Dark & Round Base Style */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0b0f17;
+            color: #f1f5f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Drill-down Navigation Bar */
+        .navbar {
+            background-color: #161e2e;
+            padding: 14px 24px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            margin-bottom: 30px;
+            border: 1px solid #1e293b;
+        }
+
+        .brand-logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-btn {
+            background: #1e293b;
+            color: #f8fafc;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-btn:hover {
+            background: #334155;
+            color: #38bdf8;
+        }
+
+        /* Drill-down Submenu Styling */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 120%;
+            left: 0;
+            background-color: #111827;
+            min-width: 260px;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+            border: 1px solid #1f2937;
+            z-index: 1000;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .menu-category {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 1px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            margin-top: 6px;
+        }
+
+        .dropdown-content a {
+            color: #cbd5e1;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #1f2937;
+            color: #38bdf8;
+        }
+
+        /* Founder / CEO Card Section */
+        .ceo-card {
+            background: #161e2e;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 35px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            border: 1px solid #1e293b;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            flex-wrap: wrap;
+        }
+
+        .ceo-img {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #38bdf8;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+        }
+
+        .ceo-info {
+            flex: 1;
+        }
+
+        .ceo-info h2 {
+            font-size: 1.5rem;
+            color: #f8fafc;
+            margin-bottom: 4px;
+        }
+
+        .ceo-info .title {
+            color: #38bdf8;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .ceo-info p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .quote-tag {
+            color: #0ea5e9;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        /* Gallery Section */
+        .gallery-section h3 {
+            font-size: 1.3rem;
+            color: #f8fafc;
+            margin-bottom: 18px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .gallery-card {
+            background: #161e2e;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .gallery-card img {
+            width: 100%;
+            height: 190px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .gallery-caption {
+            padding: 12px;
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            text-align: center;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <a href="#" class="brand-logo">Hope Haven Foundation</a>
+            <div class="nav-links">
+                
+                <!-- Drill-down Dropdown -->
+                <div class="dropdown">
+                    <button class="dropdown-btn">Kuhusu Sisi & Matukio ▾</button>
+                    <div class="dropdown-content">
+                        <div class="menu-category">Uongozi na Taasisi</div>
+                        <a href="#founder">👤 CEO: Fadhila Said Mohammed</a>
+                        <a href="#about">📜 Dira na Dhamira</a>
+                        
+                        <div class="menu-category">Shughuli Za Jamii</div>
+                        <a href="#events">🖼️ Picha za Matukio Yaliyopita</a>
+                        <a href="#projects">🤝 Miradi na Misaada</a>
+                    </div>
+                </div>
+
+                <a href="#contact" class="dropdown-btn" style="text-decoration: none;">Wasiliana Nasi</a>
+            </div>
+        </nav>
+
+        <!-- CEO / Founder Section -->
+        <section id="founder" class="ceo-card">
+            <img src="/static/image/ceo.png" alt="Fadhila Said Mohammed" class="ceo-img">
+            <div class="ceo-info">
+                <h2>Fadhila Said Mohammed</h2>
+                <div class="title">CEO & Founder — Hope Haven Charity Foundation</div>
+                <p>
+                    "Where hearts unite, hope ignites. Katika Hope Haven Charity Foundation, kila tendo la wema linaleta mwanga wa kesho iliyo bora kwa watoto na jamii yetu."
+                </p>
+                <span class="quote-tag">#HHF_QUOTES #HopeStartsHere</span>
+            </div>
+        </section>
+
+        <!-- Past Events Gallery Section -->
+        <section id="events" class="gallery-section">
+            <h3>Matukio na Shughuli Zetu Za Nyuma</h3>
+            <div class="gallery-grid">
+                
+                <div class="gallery-card">
+                    <img src="/static/image/Screenshot 2026-10-10 161848.png" alt="Tukio 1">
+                    <div class="gallery-caption">Upendo na Msaada kwa Jamii</div>
+                </div>
+
+                <div class="gallery-card">
+                    <img src="/static/image/Screenshot 2026-10-10 161926.png" alt="Tukio 2">
+                    <div class="gallery-caption">Ziara za Timu ya HHF</div>
+                </div>
+
+                <div class="gallery-card">
+                    <img src="/static/image/Screenshot 2026-10-10 161946.png" alt="Tukio 3">
+                    <div class="gallery-caption">Kuwasaidia Watoto Wenye Uhitaji</div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+</body>
+</html> 
