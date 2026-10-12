@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-bcrypt
-pytz
-httpx
-pydantic
-mangum
