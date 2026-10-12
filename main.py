@@ -738,6 +738,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 align-items: center;
                 box-sizing: border-box;
                 flex-shrink: 0;
+                z-index: 100;
             }}
             .sidebar h2 {{
                 color: #60a5fa;
@@ -924,35 +925,94 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 text-decoration: underline;
             }}
 
-            /* MOBILE RESPONSIVE FIXES */
+            /* MOBILE RESPONSIVE HAMBURGER MENU STYLES */
+            .mobile-nav-bar {{
+                display: none;
+            }}
+
             @media (max-width: 768px) {{
                 body {{
-                    flex-direction: column;
-                    height: auto;
-                    overflow: auto;
+                    flex-direction: column !important;
+                    height: auto !important;
+                    overflow-y: auto !important;
                 }}
-                .sidebar {{
+
+                .mobile-nav-bar {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: rgba(15, 23, 42, 0.95);
+                    padding: 12px 20px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                     width: 100%;
-                    height: auto;
+                    box-sizing: border-box;
+                    position: sticky;
+                    top: 0;
+                    z-index: 1000;
                 }}
+
+                .menu-toggle-btn {{
+                    background: #2563eb;
+                    color: white;
+                    border: none;
+                    padding: 8px 14px;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    font-size: 14px;
+                }}
+
+                /* Sidebar inajificha mpaka kitufe kibonyezwe */
+                .sidebar {{
+                    display: none;
+                    width: 100% !important;
+                    height: auto !important;
+                    position: absolute;
+                    top: 55px;
+                    left: 0;
+                    z-index: 999;
+                    background: rgba(15, 23, 42, 0.98) !important;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+                    border-right: none;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                }}
+
+                .sidebar.show {{
+                    display: flex !important;
+                }}
+
                 .main-content {{
-                    height: auto;
-                    padding: 15px;
+                    height: auto !important;
+                    padding: 15px !important;
+                    overflow-y: visible !important;
                 }}
+
                 .card-container {{
-                    flex-direction: column;
+                    flex-direction: column !important;
                 }}
+
+                .slider-container {{
+                    height: 250px !important;
+                }}
+
                 table {{
-                    display: block;
-                    overflow-x: auto;
+                    display: block !important;
+                    overflow-x: auto !important;
+                    white-space: nowrap !important;
                 }}
             }}
         </style>
     </head>
     <body>
 
-        <!-- SIDEBAR (FIXED) -->
-        <div class="sidebar">
+        <!-- MOBILE NAVBAR WITH HAMBURGER MENU -->
+        <div class="mobile-nav-bar">
+            <span style="color: #60a5fa; font-weight: bold; font-size: 16px;">💙 Hope Haven</span>
+            <button onclick="toggleMenu()" class="menu-toggle-btn">☰ Menu</button>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="appSidebar">
             {sidebar_logo}
             <h2>Hope Haven Foundation</h2>
             <div class="user-tag">👤 <b>{username}</b> ({role})</div>
@@ -1036,7 +1096,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             </div>
 
             <div class="content-box">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <h2>{t['donors_list']}</h2>
                     <a href="/api/admin/export/donations" class="btn" style="background-color: #059669; font-size: 13px; padding: 8px 14px;">📥 Download Excel (CSV)</a>
                 </div>
@@ -1323,6 +1383,14 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
             </footer>
         </div>
+        
+        <!-- SCRIPT YA KUFUNGUA/KUFUNGA MENU KWENYE SIMU -->
+        <script>
+        function toggleMenu() {{
+            const sidebar = document.getElementById('appSidebar');
+            sidebar.classList.toggle('show');
+        }}
+        </script>
     </body>
     </html>
     """
