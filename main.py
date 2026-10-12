@@ -1389,10 +1389,19 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             <footer>
                 <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 769 868 675</p>
                 <div class="social-links">
-                    <a href="#" target="_blank">🌐 chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6</a> | 
-                    <a href="#" target="_blank">📘 Facebook</a> | 
-                    <a href="#" target="_blank">📷 hope.haven.foundation</a> | 
-                    <a href="#" target="_blank">🐦 Twitter / X</a> | 
+                    <!-- Link ya WhatsApp -->
+                    <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
+                
+                    <!-- Link ya Facebook (Weka URL kamili ya ukurasa wako wa Facebook hapa) -->
+                    <a href="https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
+                
+                    <!-- Link ya Instagram -->
+                    <a href="https://instagram.com/hope.haven.foundation" target="_blank">📷 hope.haven.foundation</a> | 
+                
+                    <!-- Link ya Twitter/X -->
+                    <a href="https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
+                
+                    <!-- Link ya Email (Inafungua app ya Email moja kwa moja) -->
                     <a href="mailto:info@hopehaven.org">✉️ Email</a>
                 </div>
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
