@@ -1330,4 +1330,4 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=T
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
