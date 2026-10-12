@@ -1387,9 +1387,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     html_content += f"""
             </div>
             <footer>
-                <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 710 6817</p>
+                <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 769 868 675</p>
                 <div class="social-links">
-                    <a href="#" target="_blank">🌐 Website</a> | 
+                    <a href="#" target="_blank">🌐 chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6</a> | 
                     <a href="#" target="_blank">📘 Facebook</a> | 
                     <a href="#" target="_blank">📷 hope.haven.foundation</a> | 
                     <a href="#" target="_blank">🐦 Twitter / X</a> | 
@@ -1399,7 +1399,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             </footer>
         </div>
         
-        <!-- SCRIPTS YA KUFUNGUA MENU NA FADE BACKGROUND OTOMATIKI -->
+
         <script>
         function toggleMenu() {{
             const sidebar = document.getElementById('appSidebar');
@@ -1432,7 +1432,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             }}
         }}
 
-        // Inabadilisha picha kwa ustadi (smoothly) kila baada ya sekunde 35
+
         setInterval(changeBackground, 35000);
         </script>
     </body>
