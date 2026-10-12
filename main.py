@@ -13,7 +13,7 @@ from datetime import datetime
 import pytz
 import httpx
 
-app = FastAPI(title="Hope Haven Foundation", version="15.1")
+app = FastAPI(title="Hope Haven Foundation", version="15.3")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -176,11 +176,7 @@ def receive_donation(data: DonationPayload):
 
 @app.post("/api/payment/azampay-stk")
 def request_azampay_stk(data: AzamPayStkPayload):
-    client_id = "d5317ff6-7d36-440d-8020-67b5f042f0f3"
     token = "1a6605bd-fee4-4eb2-a0e0-a4295b749caf"
-    
-    url = "https://sandbox.azampay.co.tz/api/v1/Checkout/SingleCheckout"
-    
     payload = {
         "accountNumber": "HopeHavenFoundation",
         "amount": str(data.amount),
@@ -189,11 +185,6 @@ def request_azampay_stk(data: AzamPayStkPayload):
         "provider": data.provider,
         "mobileNumber": data.phone_number,
         "additionalProperties": {}
-    }
-    
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
     }
     
     try:
@@ -228,7 +219,6 @@ async def add_event(
     images: list[UploadFile] = File([])
 ):
     require_admin(request)
-    
     saved_filenames = []
     for img in images:
         if img.filename:
@@ -239,7 +229,6 @@ async def add_event(
             saved_filenames.append(unique_filename)
             
     image_names_str = ",".join(saved_filenames)
-    
     conn = get_db()
     conn.execute("INSERT INTO events (title, description, location, event_date, event_type, image_names) VALUES (?, ?, ?, ?, ?, ?)", 
                  (title, description, location, event_date, event_type, image_names_str))
@@ -556,7 +545,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         return RedirectResponse(url="/auth", status_code=303)
 
     conn = get_db()
-    
     if lang:
         conn.execute("UPDATE settings SET value = ? WHERE key = 'language'", (lang,))
         conn.commit()
@@ -566,11 +554,19 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
     bg_dir = "static/backgrounds"
     if os.path.exists(bg_dir):
-        bg_images = [f for f in os.listdir(bg_dir) if f.lower().endswith(('.jfif', '.jpg', '.jpeg', '.png'))]
+        bg_files = [f for f in os.listdir(bg_dir) if f.lower().endswith(('.jfif', '.jpg', '.jpeg', '.png'))]
     else:
-        bg_images = []
+        bg_files = []
 
-    selected_bg = f"/static/backgrounds/{random.choice(bg_images)}" if bg_images else "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1600&auto=format&fit=crop"
+    if bg_files:
+        bg_images_list = [f"/static/backgrounds/{f}" for f in bg_files]
+    else:
+        bg_images_list = [
+            "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1600&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1532629345422-7515f3d16bb9?q=80&w=1600&auto=format&fit=crop"
+        ]
+
+    selected_bg = bg_images_list[0]
     logo_exists = os.path.exists("static/brand/logo.jpg")
 
     today_str = datetime.now(EAT_TIMEZONE).strftime("%Y-%m-%d")
@@ -716,15 +712,31 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 margin: 0;
                 padding: 0;
-                background: linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.65)), 
-                            url('{selected_bg}');
-                background-size: cover;
-                background-position: center;
-                background-attachment: fixed;
+                background-color: #0f172a;
                 color: #f8fafc;
                 display: flex;
                 height: 100vh;
                 overflow: hidden;
+            }}
+            /* Fade Background Layers */
+            .bg-layer {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-size: cover;
+                background-position: center;
+                transition: opacity 1.5s ease-in-out;
+                z-index: -999;
+            }}
+            #bg1 {{
+                opacity: 1;
+                background-image: linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.65)), url('{selected_bg}');
+            }}
+            #bg2 {{
+                opacity: 0;
+                background-image: linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.65)), url('{selected_bg}');
             }}
             .sidebar {{
                 width: 280px;
@@ -962,7 +974,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                     font-size: 14px;
                 }}
 
-                /* Sidebar inajificha mpaka kitufe kibonyezwe */
                 .sidebar {{
                     display: none;
                     width: 100% !important;
@@ -1004,6 +1015,10 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         </style>
     </head>
     <body>
+
+        <!-- FADE BACKGROUND LAYERS -->
+        <div id="bg1" class="bg-layer"></div>
+        <div id="bg2" class="bg-layer"></div>
 
         <!-- MOBILE NAVBAR WITH HAMBURGER MENU -->
         <div class="mobile-nav-bar">
@@ -1384,12 +1399,41 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             </footer>
         </div>
         
-        <!-- SCRIPT YA KUFUNGUA/KUFUNGA MENU KWENYE SIMU -->
+        <!-- SCRIPTS YA KUFUNGUA MENU NA FADE BACKGROUND OTOMATIKI -->
         <script>
         function toggleMenu() {{
             const sidebar = document.getElementById('appSidebar');
             sidebar.classList.toggle('show');
         }}
+
+        const bgImages = {bg_images_list};
+        let currentBgIndex = 0;
+        let activeBg = 1;
+
+        function changeBackground() {{
+            if (bgImages.length > 1) {{
+                currentBgIndex = (currentBgIndex + 1) % bgImages.length;
+                let nextImageUrl = "linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.65)), url('" + bgImages[currentBgIndex] + "')";
+                
+                let bg1 = document.getElementById('bg1');
+                let bg2 = document.getElementById('bg2');
+
+                if (activeBg === 1) {{
+                    bg2.style.backgroundImage = nextImageUrl;
+                    bg2.style.opacity = 1;
+                    bg1.style.opacity = 0;
+                    activeBg = 2;
+                }} else {{
+                    bg1.style.backgroundImage = nextImageUrl;
+                    bg1.style.opacity = 1;
+                    bg2.style.opacity = 0;
+                    activeBg = 1;
+                }}
+            }}
+        }}
+
+        // Inabadilisha picha kwa ustadi (smoothly) kila baada ya sekunde 35
+        setInterval(changeBackground, 35000);
         </script>
     </body>
     </html>
