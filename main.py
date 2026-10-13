@@ -13,7 +13,7 @@ from datetime import datetime
 import pytz
 import httpx
 
-app = FastAPI(title="Hope Haven Foundation", version="15.3")
+app = FastAPI(title="Hope Haven Foundation", version="15.5")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -101,22 +101,16 @@ def init_db():
             password TEXT,
             contact TEXT,
             otp TEXT,
-            role TEXT DEFAULT 'user'
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
+            role TEXT DEFAULT 'user',
+            language TEXT DEFAULT 'sw'
         )
     """)
     
     admin_user = cursor.execute("SELECT * FROM users WHERE username = 'admin'").fetchone()
     if not admin_user:
         hashed_admin_pwd = hash_password("password123")
-        cursor.execute("INSERT INTO users (username, password, contact, role) VALUES ('admin', ?, 'admin@hopehaven.org', 'admin')", (hashed_admin_pwd,))
+        cursor.execute("INSERT INTO users (username, password, contact, role, language) VALUES ('admin', ?, 'admin@hopehaven.org', 'admin', 'sw')", (hashed_admin_pwd,))
     
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'sw')")
     conn.commit()
     conn.close()
 
@@ -248,6 +242,18 @@ def add_finance(request: Request, total_raised: float = Form(...), total_expense
     conn.close()
     return {"status": "success"}
 
+@app.post("/api/admin/clear-data")
+def clear_system_data(request: Request):
+    require_admin(request)
+    conn = get_db()
+    conn.execute("DELETE FROM donations")
+    conn.execute("DELETE FROM community_chats")
+    conn.execute("DELETE FROM financial_reports")
+    conn.execute("DELETE FROM visitors")
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/?page=admin&success=cleared", status_code=303)
+
 @app.get("/api/admin/export/donations")
 def export_donations(request: Request):
     require_admin(request)
@@ -272,14 +278,14 @@ def export_donations(request: Request):
 def export_users(request: Request):
     require_admin(request)
     conn = get_db()
-    users = conn.execute("SELECT id, username, contact, role FROM users").fetchall()
+    users = conn.execute("SELECT id, username, contact, role, language FROM users").fetchall()
     conn.close()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Username", "Contact / Email", "Role"])
+    writer.writerow(["ID", "Username", "Contact / Email", "Role", "Language"])
     for u in users:
-        writer.writerow([u["id"], u["username"], u["contact"], u["role"]])
+        writer.writerow([u["id"], u["username"], u["contact"], u["role"], u["language"]])
     
     output.seek(0)
     return StreamingResponse(
@@ -293,7 +299,7 @@ def register_user(username: str = Form(...), password: str = Form(...), contact:
     conn = get_db()
     hashed_pwd = hash_password(password)
     try:
-        conn.execute("INSERT INTO users (username, password, contact, role) VALUES (?, ?, ?, 'user')", (username, hashed_pwd, contact))
+        conn.execute("INSERT INTO users (username, password, contact, role, language) VALUES (?, ?, ?, 'user', 'sw')", (username, hashed_pwd, contact))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
@@ -538,19 +544,21 @@ def auth_page(mode: str = "login", error: str = None, success: str = None, usern
 
 
 @app.get("/", response_class=HTMLResponse)
-def serve_frontend(request: Request, page: str = "home", lang: str = None, success: str = None):
+def serve_frontend(request: Request, response: Response, page: str = "home", lang: str = None, success: str = None):
     username = request.cookies.get("username")
     role = request.cookies.get("role") or "user"
     if not username:
         return RedirectResponse(url="/auth", status_code=303)
 
     conn = get_db()
-    if lang:
-        conn.execute("UPDATE settings SET value = ? WHERE key = 'language'", (lang,))
-        conn.commit()
     
-    current_lang_row = conn.execute("SELECT value FROM settings WHERE key = 'language'").fetchone()
-    current_lang = current_lang_row["value"] if current_lang_row["value"] in ["sw", "en"] else "sw"
+    user_row = conn.execute("SELECT language FROM users WHERE username = ?", (username,)).fetchone()
+    current_lang = user_row["language"] if user_row and user_row["language"] in ["sw", "en"] else "sw"
+
+    if lang and lang in ["sw", "en"]:
+        conn.execute("UPDATE users SET language = ? WHERE username = ?", (lang, username))
+        conn.commit()
+        current_lang = lang
 
     bg_dir = "static/backgrounds"
     if os.path.exists(bg_dir):
@@ -570,13 +578,19 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     logo_exists = os.path.exists("static/brand/logo.jpg")
 
     today_str = datetime.now(EAT_TIMEZONE).strftime("%Y-%m-%d")
+    visitor_cookie = request.cookies.get("visitor_date")
+
     visitor_row = conn.execute("SELECT * FROM visitors WHERE visit_date = ?", (today_str,)).fetchone()
-    if visitor_row:
-        new_count = visitor_row["count"] + 1
-        conn.execute("UPDATE visitors SET count = ? WHERE visit_date = ?", (new_count, today_str))
-    else:
+    if not visitor_row:
         conn.execute("INSERT INTO visitors (visit_date, count) VALUES (?, 1)", (today_str,))
         new_count = 1
+    else:
+        new_count = visitor_row["count"]
+        # Unaongeza tu iwapo mtumiaji hana cookie ya leo
+        if visitor_cookie != today_str:
+            new_count += 1
+            conn.execute("UPDATE visitors SET count = ? WHERE visit_date = ?", (new_count, today_str))
+
     conn.commit()
 
     donations = conn.execute("SELECT * FROM donations ORDER BY id DESC").fetchall()
@@ -584,9 +598,15 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     next_events = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC").fetchall()
     past_events = conn.execute("SELECT * FROM events WHERE event_type = 'past' ORDER BY id DESC").fetchall()
     finances = conn.execute("SELECT * FROM financial_reports ORDER BY id DESC").fetchall()
-    all_users = conn.execute("SELECT id, username, contact, role FROM users ORDER BY id DESC").fetchall() if role == "admin" else []
+    all_users = conn.execute("SELECT id, username, contact, role, language FROM users ORDER BY id DESC").fetchall() if role == "admin" else []
     total_raised = sum([d["amount"] for d in donations]) if donations else 0
     conn.close()
+
+    # Tunatengeneza Response na kuweka Cookie ili mgeni asihesabiwe mara mbili kwa siku
+    resp_html = """
+    <!DOCTYPE html>
+    ...
+    """ # Itajazwa na maudhui hapa chini
 
     t = {
         "sw": {
@@ -718,7 +738,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 height: 100vh;
                 overflow: hidden;
             }}
-            /* Fade Background Layers */
             .bg-layer {{
                 position: fixed;
                 top: 0;
@@ -937,7 +956,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 text-decoration: underline;
             }}
 
-            /* MOBILE RESPONSIVE HAMBURGER MENU STYLES */
             .mobile-nav-bar {{
                 display: none;
             }}
@@ -1016,17 +1034,14 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     </head>
     <body>
 
-        <!-- FADE BACKGROUND LAYERS -->
         <div id="bg1" class="bg-layer"></div>
         <div id="bg2" class="bg-layer"></div>
 
-        <!-- MOBILE NAVBAR WITH HAMBURGER MENU -->
         <div class="mobile-nav-bar">
             <span style="color: #60a5fa; font-weight: bold; font-size: 16px;">💙 Hope Haven</span>
             <button onclick="toggleMenu()" class="menu-toggle-btn">☰ Menu</button>
         </div>
 
-        <!-- SIDEBAR -->
         <div class="sidebar" id="appSidebar">
             {sidebar_logo}
             <h2>Hope Haven Foundation</h2>
@@ -1041,7 +1056,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             <a href="/logout" style="color: #f87171; margin-top: 20px;">{t['logout']}</a>
         </div>
 
-        <!-- MAIN CONTENT (SCROLLABLE) -->
         <div class="main-content">
             <div class="content-body">
     """
@@ -1149,7 +1163,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
                     body: JSON.stringify(data)
-                }});
+                }};
                 
                 if(res.ok) {{
                     let result = await res.json();
@@ -1304,11 +1318,13 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
     elif page == "admin" and role == "admin":
         success_banner = '<div style="background: rgba(74, 222, 128, 0.2); border: 1px solid #4ade80; color: #4ade80; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">Tukio limehifadhiwa na picha zimepakiwa kwa mafanikio!</div>' if success == "event" else ''
+        cleared_banner = '<div style="background: rgba(74, 222, 128, 0.2); border: 1px solid #4ade80; color: #4ade80; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">Data zote za mfumo zimefutwa kikamilifu!</div>' if success == "cleared" else ''
         
         html_content += f"""
             <div class="content-box">
                 <h2>{t['admin_title']}</h2>
                 {success_banner}
+                {cleared_banner}
                 
                 <h3>3. Orodha ya Watumiaji wa Mfumo (System Users)</h3>
                 <div style="margin-bottom: 15px;">
@@ -1320,13 +1336,14 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                         <th>Username</th>
                         <th>Contact / Email</th>
                         <th>Role</th>
+                        <th>Language</th>
                     </tr>
         """
         if all_users:
             for u in all_users:
-                html_content += f"<tr><td>{u['id']}</td><td>{u['username']}</td><td>{u['contact']}</td><td>{u['role']}</td></tr>"
+                html_content += f"<tr><td>{u['id']}</td><td>{u['username']}</td><td>{u['contact']}</td><td>{u['role']}</td><td>{u['language']}</td></tr>"
         else:
-            html_content += "<tr><td colspan='4'>No users found.</td></tr>"
+            html_content += "<tr><td colspan='5'>No users found.</td></tr>"
         
         html_content += f"""
                 </table>
@@ -1363,6 +1380,14 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                     <div class="form-group"><label>{t['summary_label']}</label><textarea name="summary" rows="2" required></textarea></div>
                     <button type="submit" class="btn">{t['save_finance']}</button>
                 </form>
+
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 30px 0;">
+
+                <h3 style="color: #f87171;">4. Eneo Hatari: Safisha Data Zote (Reset Dashboard)</h3>
+                <p style="color: #94a3b8; font-size: 13px;">Kitendo hiki kitafuta michango yote, mazungumzo ya jamii, na ripoti za fedha ili dashboard ianze upya kuanzia sifuri.</p>
+                <form action="/api/admin/clear-data" method="POST" onsubmit="return confirm('Je, una uhakika unataka kufuta data zote za mfumo?');">
+                    <button type="submit" class="btn" style="background-color: #dc2626;">🗑️ Futa Data Zote (Clear System Data)</button>
+                </form>
             </div>
         """
 
@@ -1389,26 +1414,16 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             <footer>
                 <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 769 868 675</p>
                 <div class="social-links">
-                    <!-- Link ya WhatsApp -->
                     <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
-                
-                    <!-- Link ya Facebook (Weka URL kamili ya ukurasa wako wa Facebook hapa) -->
-                    <a href="https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
-                
-                    <!-- Link ya Instagram -->
+                    <a href=#"https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
                     <a href="https://instagram.com/hope.haven.foundation" target="_blank">📷 hope.haven.foundation</a> | 
-                
-                    <!-- Link ya Twitter/X -->
-                    <a href="https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
-                
-                    <!-- Link ya Email (Inafungua app ya Email moja kwa moja) -->
-                    <a href="mailto:info@hopehaven.org">✉️ Email</a>
+                    <a href=#"https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
+                    <a href=#"mailto:info@hopehaven.org">✉️ Email</a>
                 </div>
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
             </footer>
         </div>
         
-
         <script>
         function toggleMenu() {{
             const sidebar = document.getElementById('appSidebar');
@@ -1441,13 +1456,15 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             }}
         }}
 
-
         setInterval(changeBackground, 35000);
         </script>
     </body>
     </html>
     """
-    return html_content
+    
+    response = Response(content=html_content, media_type="text/html")
+    response.set_cookie(key="visitor_date", value=today_str, httponly=True, samesite="lax")
+    return response
 
 if __name__ == "__main__":
     import uvicorn
