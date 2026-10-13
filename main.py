@@ -13,7 +13,9 @@ from datetime import datetime
 import pytz
 import httpx
 
-app = FastAPI(title="Hope Haven Foundation", version="15.7")
+app = FastAPI(title="Hope Haven Foundation", version="15.8")
+
+GEMINI_API_KEY = os.getenv("GET API KEY", "")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -106,7 +108,6 @@ def init_db():
         )
     """)
     
-    # Auto-Migration: Inaongeza safu ya language kama haipo kwenye database ya zamani
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'sw'")
         conn.commit()
@@ -148,6 +149,36 @@ class AzamPayStkPayload(BaseModel):
     phone_number: str
     provider: str
     is_anonymous: bool = False
+
+class HopeAIPayload(BaseModel):
+    message: str
+    user_name: str
+
+@app.post("/api/hope-ai")
+async def chat_with_hope(data: HopeAIPayload):
+    if not GEMINI_API_KEY:
+        return {"reply": "Habari! Mimi ni Hope AI Assistant. Kwa sasa mfumo unahitaji kuunganishwa na GEMINI_API_KEY ili nianze kujibu maswali yako kwa usahihi."}
+
+    prompt = f"""
+    Wewe ni Hope, AI Assistant rafiki, mwenye elimu, na mwenye huruma wa taasisi ya 'Hope Haven Foundation' iliyoko Dar es Salaam, Tanzania.
+    Lengo la taasisi ni kutoa misaada ya kibinadamu, usawa, na kuinua maisha ya jamii zenye mahitaji.
+    Unazungumza na mtumiaji anayeitwa {data.user_name}.
+    Jibu ujumbe wake kwa usahihi, heshima na uwe mfupi (mistari 2 hadi 4). Zungumza kwa lugha aliyotumia mtumiaji (Kiswahili au Kiingereza).
+    Ujumbe wa mtumiaji: "{data.message}"
+    """
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}",
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=15.0
+            )
+            res_data = response.json()
+            reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
+            return {"reply": reply_text}
+    except Exception:
+        return {"reply": "Samahani, kumekuwa na tatizo la mtandao. Tafadhali jaribu kuniuliza tena baada ya muda kidogo!"}
 
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
@@ -559,7 +590,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
     conn = get_db()
     
-    # 1. Kuhifadhi Lugha ya Mtumiaji
     user_row = conn.execute("SELECT language FROM users WHERE username = ?", (username,)).fetchone()
     current_lang = user_row["language"] if user_row and user_row["language"] in ["sw", "en"] else "sw"
 
@@ -568,7 +598,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         conn.commit()
         current_lang = lang
 
-    # 2. Mantiki Sahihi ya Wageni (Visitors Today): Mtumiaji mmoja anahesabiwa mara moja pekee kwa siku
     today_str = datetime.now(EAT_TIMEZONE).strftime("%Y-%m-%d")
     visited_today = conn.execute("SELECT * FROM visitors WHERE visit_date = ? AND visitor_name = ?", (today_str, username)).fetchone()
     
@@ -576,10 +605,8 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         conn.execute("INSERT INTO visitors (visit_date, visitor_name) VALUES (?, ?)", (today_str, username))
         conn.commit()
 
-    # Kuhesabu wageni wote TOTO wa kipekee kwa siku ya leo
     today_visitors_count = conn.execute("SELECT COUNT(DISTINCT visitor_name) as total FROM visitors WHERE visit_date = ?", (today_str,)).fetchone()["total"]
 
-    # 3. Kutafta michango na data zote za kimfumo
     donations = conn.execute("SELECT * FROM donations ORDER BY id DESC").fetchall()
     chats = conn.execute("SELECT * FROM community_chats ORDER BY id DESC").fetchall()
     next_events = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC").fetchall()
@@ -876,60 +903,104 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 display: inline-block;
             }}
             .btn:hover {{ background-color: #1d4ed8; }}
-            
-            .slider-container {{
-                position: relative;
-                max-width: 100%;
-                height: 520px;
-                margin: 15px 0;
-                overflow: hidden;
-                border-radius: 12px;
-                background: rgba(15, 23, 42, 0.6);
-                box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-            }}
-            .slide {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                opacity: 0;
-                transition: opacity 0.6s ease-in-out;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }}
-            .slide.active {{
-                opacity: 1;
-            }}
-            .slide img {{
-                max-width: 100%;
-                max-height: 100%;
-                width: auto;
-                height: auto;
-                object-fit: contain;
-                border-radius: 8px;
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-            }}
-            .slider-btn {{
-                position: absolute;
-                top: 50%;
-                transform: translateY(-50%);
-                background: rgba(0, 0, 0, 0.6);
-                color: white;
-                border: none;
-                padding: 12px 16px;
-                cursor: pointer;
-                font-size: 18px;
+
+            /* HOPE AI FLOATING WIDGET STYLES */
+            .ai-widget-btn {{
+                position: fixed;
+                bottom: 25px;
+                right: 25px;
+                width: 60px;
+                height: 60px;
                 border-radius: 50%;
-                z-index: 10;
-                transition: background 0.3s;
+                background: linear-gradient(135deg, #2563eb, #3b82f6);
+                color: white;
+                border: 2px solid #60a5fa;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+                font-size: 28px;
+                cursor: pointer;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.3s;
             }}
-            .slider-btn:hover {{
-                background: rgba(37, 99, 235, 0.9);
+            .ai-widget-btn:hover {{
+                transform: scale(1.1);
             }}
-            .prev-btn {{ left: 15px; }}
-            .next-btn {{ right: 15px; }}
+
+            .ai-chat-box {{
+                position: fixed;
+                bottom: 95px;
+                right: 25px;
+                width: 350px;
+                max-width: 90vw;
+                height: 450px;
+                background: #1e293b;
+                border: 1px solid #334155;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+                display: none;
+                flex-direction: column;
+                z-index: 9999;
+                overflow: hidden;
+            }}
+
+            .ai-chat-header {{
+                background: #0f172a;
+                padding: 14px;
+                border-bottom: 1px solid #334155;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                color: #60a5fa;
+                font-weight: bold;
+            }}
+
+            .ai-chat-messages {{
+                flex: 1;
+                padding: 15px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                font-size: 13px;
+            }}
+
+            .msg-ai {{
+                background: #334155;
+                color: white;
+                padding: 10px 12px;
+                border-radius: 12px 12px 12px 0;
+                max-width: 80%;
+                align-self: flex-start;
+            }}
+
+            .msg-user {{
+                background: #2563eb;
+                color: white;
+                padding: 10px 12px;
+                border-radius: 12px 12px 0 12px;
+                max-width: 80%;
+                align-self: flex-end;
+            }}
+
+            .ai-chat-input {{
+                padding: 10px;
+                background: #0f172a;
+                border-top: 1px solid #334155;
+                display: flex;
+                gap: 8px;
+            }}
+
+            .ai-chat-input input {{
+                flex: 1;
+                padding: 8px 12px;
+                border-radius: 6px;
+                border: 1px solid #475569;
+                background: #1e293b;
+                color: white;
+                font-size: 13px;
+            }}
 
             .mobile-nav-bar {{
                 display: none;
@@ -993,10 +1064,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
                 .card-container {{
                     flex-direction: column !important;
-                }}
-
-                .slider-container {{
-                    height: 250px !important;
                 }}
 
                 table {{
