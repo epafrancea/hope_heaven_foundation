@@ -16,7 +16,7 @@ import httpx
 app = FastAPI(title="Hope Haven Foundation", version="15.9")
 
 # Weka API Key yako ya Gemini hapa moja kwa moja
-GEMINI_API_KEY = "Weka_Hapa_API_Key_Yako_Yote"
+GEMINI_API_KEY = "AQ.Ab8RN6LU81NO2v7O0ZrrMnqve4snWYOYSxRJ8Bl9re2xHu_UKA"
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
