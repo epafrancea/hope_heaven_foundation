@@ -15,7 +15,7 @@ import httpx
 
 app = FastAPI(title="Hope Haven Foundation", version="15.8")
 
-GEMINI_API_KEY = os.getenv("AQ.Ab8RN6LU81NO2v7O0ZrrMnqve4snWYOYSxRJ8Bl9re2xHu_UKA", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -1450,11 +1450,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 </form>
             </div>
         """
-
     html_content += f"""
             </div>
             <footer>
-
                 <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 710 6817</p>
                 <div class="social-links">
                     <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
@@ -1466,7 +1464,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
             </footer>
         </div>
-        
         <script>
         function toggleMenu() {{
             const sidebar = document.getElementById('appSidebar');
