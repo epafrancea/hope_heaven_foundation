@@ -16,9 +16,9 @@ import google.generativeai as genai
 app = FastAPI(title="Hope Haven Foundation", version="16.0")
 
 # Weka API Key yako ya Gemini hapa
-GEMINI_API_KEY = "AQ.Ab8RN6IJUKaQ-xMYmNpYz4lOEyX7oBwXH4Q4GL5ICTiPY404Pg"
+GEMINI_API_KEY = "AQ.Ab8RN6LJEft89_ECeAnug7B49v78NsDQeNwMxHDIz7Dety_bVg"
 
-if GEMINI_API_KEY and GEMINI_API_KEY != "AQ.Ab8RN6IJUKaQ-xMYmNpYz4lOEyX7oBwXH4Q4GL5ICTiPY404Pg":
+if GEMINI_API_KEY and GEMINI_API_KEY != "AQ.Ab8RN6LJEft89_ECeAnug7B49v78NsDQeNwMxHDIz7Dety_bVg":
     genai.configure(api_key=GEMINI_API_KEY)
 
 def hash_password(password: str) -> str:
@@ -160,7 +160,7 @@ class HopeAIPayload(BaseModel):
 
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
-    if not GEMINI_API_KEY or GEMINI_API_KEY == "AQ.Ab8RN6IJUKaQ-xMYmNpYz4lOEyX7oBwXH4Q4GL5ICTiPY404Pg":
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "AQ.Ab8RN6LJEft89_ECeAnug7B49v78NsDQeNwMxHDIz7Dety_bVg":
         return {"reply": "Habari! Mimi ni Hope AI Assistant. Tafadhali weka Gemini API Key halisi ndani ya faili la main.py ili nianze kukusaidia."}
 
     prompt = f"""
