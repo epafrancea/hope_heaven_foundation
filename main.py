@@ -11,12 +11,15 @@ import csv
 import shutil
 from datetime import datetime
 import pytz
-import httpx
+import google.generativeai as genai
 
-app = FastAPI(title="Hope Haven Foundation", version="15.9")
+app = FastAPI(title="Hope Haven Foundation", version="16.0")
 
-# Weka API Key yako ya Gemini hapa moja kwa moja
-GEMINI_API_KEY = "AQ.Ab8RN6IngAjJrV9MG0qvu9vTiyk2iKQO0SleQXAWHEl3MrbqqA"
+# Weka API Key yako ya Gemini hapa
+GEMINI_API_KEY = "Weka_Hapa_API_Key_Yako_Yote"
+
+if GEMINI_API_KEY and GEMINI_API_KEY != "Weka_Hapa_API_Key_Yako_Yote":
+    genai.configure(api_key=GEMINI_API_KEY)
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -158,34 +161,23 @@ class HopeAIPayload(BaseModel):
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
     if not GEMINI_API_KEY or GEMINI_API_KEY == "Weka_Hapa_API_Key_Yako_Yote":
-        return {"reply": "Habari! Tafadhali weka Gemini API Key halisi ndani ya main.py."}
+        return {"reply": "Habari! Mimi ni Hope AI Assistant. Tafadhali weka Gemini API Key halisi ndani ya faili la main.py ili nianze kukusaidia."}
 
     prompt = f"""
-    Wewe ni Hope, AI Assistant rafiki wa taasisi ya 'Hope Haven Foundation' Dar es Salaam.
-    Jibu kwa heshima, fupi (mistari 2-3), kwa lugha aliyotumia mtumiaji ({data.user_name}).
-    Ujumbe: "{data.message}"
+    Wewe ni Hope, AI Assistant rafiki, mwenye elimu, na mwenye huruma wa taasisi ya 'Hope Haven Foundation' iliyoko Dar es Salaam, Tanzania.
+    Lengo la taasisi ni kutoa misaada ya kibinadamu, usawa, na kuinua maisha ya jamii zenye mahitaji.
+    Unazungumza na mtumiaji anayeitwa {data.user_name}.
+    Jibu ujumbe wake kwa usahihi, heshima na uwe mfupi (mistari 2 hadi 4). Zungumza kwa lugha aliyotumia mtumiaji (Kiswahili au Kiingereza).
+    Ujumbe wa mtumiaji: "{data.message}"
     """
 
     try:
-        async with httpx.AsyncClient() as client:
-            # Tunatumia header ya x-goog-api-key badala ya kuweka key kwenye URL (kuzuia makosa ya AQ keys)
-            response = await client.post(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-                headers={"x-goog-api-key": GEMINI_API_KEY},
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=20.0
-            )
-            res_data = response.json()
-            
-            if "candidates" in res_data and len(res_data["candidates"]) > 0:
-                reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
-                return {"reply": reply_text}
-            else:
-                error_msg = res_data.get("error", {}).get("message", "Hitilafu haijulikani kutoka Google AI.")
-                return {"reply": f"Hitilafu ya AI: {error_msg}"}
-                
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        return {"reply": response.text}
     except Exception as e:
-        return {"reply": f"Hitilafu ya mtandao: {str(e)}"}
+        return {"reply": "Samahani, kumekuwa na tatizo la mtandao wa AI. Tafadhali jaribu tena baada ya muda kidogo!"}
+
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
     conn = get_db()
