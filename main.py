@@ -11,15 +11,8 @@ import csv
 import shutil
 from datetime import datetime
 import pytz
-import google.generativeai as genai
 
-app = FastAPI(title="Hope Haven Foundation", version="16.0")
-
-# Weka API Key yako ya Gemini hapa
-GEMINI_API_KEY = "AQ.Ab8RN6LJEft89_ECeAnug7B49v78NsDQeNwMxHDIz7Dety_bVg"
-
-if GEMINI_API_KEY and GEMINI_API_KEY != "AQ.Ab8RN6LJEft89_ECeAnug7B49v78NsDQeNwMxHDIz7Dety_bVg":
-    genai.configure(api_key=GEMINI_API_KEY)
+app = FastAPI(title="Hope Haven Foundation", version="17.0")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -160,23 +153,25 @@ class HopeAIPayload(BaseModel):
 
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
-    if not GEMINI_API_KEY:
-        return {"reply": "Habari! Mimi ni Hope AI Assistant. Tafadhali weka Gemini API Key halisi ndani ya faili la main.py ili nianze kukusaidia."}
+    msg = data.message.lower().strip()
+    
+    # Mfumo wa Hope AI wa ndani (Smart Assistant)
+    if "habari" in msg or "mambo" in msg or "hujambo" in msg or "hello" in msg or "hi" in msg:
+        reply = f"Habari {data.user_name}! Mimi ni Hope, msaidizi wako wa Hope Haven Foundation. Ninawezaje kukusaidia leo?"
+    elif "mchango" in msg or "lipa" in msg or "toa" in msg or "pesa" in msg or "donate" in msg:
+        reply = "Unaweza kuchangia kwa urahisi kupitia ukurasa wetu wa Dashboard kwa kutumia namba yako ya simu (AzamPay STK Push) salama kabisa!"
+    elif "mawasiliano" in msg or "namba" in msg or "simu" in msg or "email" in msg or "phone" in msg:
+        reply = "Unaweza kuwasiliana nasi kupitia namba ya uongozi: +255 710 6817 au kupitia barua pepe info@hopehaven.org."
+    elif "tanzania" in msg or "dar" in msg or "makao" in msg:
+        reply = "Hope Haven Foundation makao yake makuu yako Dar es Salaam, Tanzania, tukijihusisha na kusaidia jamii na makundi maalum."
+    elif "lengo" in msg or "historia" in msg or "about" in msg:
+        reply = "Lengo letu kuu ni kutoa misaada ya kibinadamu, elimu, na huduma za afya ili kuinua maisha ya jamii zenye mahitaji maalum."
+    elif "asante" in msg or "thank" in msg:
+        reply = "Karibu sana! Hope Haven Foundation ipo kwa ajili yako."
+    else:
+        reply = f"Nimekupata {data.user_name}! Hope Haven Foundation inatoa huduma za kusaidia jamii, kusimamia matukio na michango. Unaweza kuuliza kuhusu michango au huduma zetu."
 
-    prompt = f"""
-    Wewe ni Hope, AI Assistant rafiki, mwenye elimu, na mwenye huruma wa taasisi ya 'Hope Haven Foundation' iliyoko Dar es Salaam, Tanzania.
-    Lengo la taasisi ni kutoa misaada ya kibinadamu, usawa, na kuinua maisha ya jamii zenye mahitaji.
-    Unazungumza na mtumiaji anayeitwa {data.user_name}.
-    Jibu ujumbe wake kwa usahihi, heshima na uwe mfupi (mistari 2 hadi 4). Zungumza kwa lugha aliyotumia mtumiaji (Kiswahili au Kiingereza).
-    Ujumbe wa mtumiaji: "{data.message}"
-    """
-
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
-        return {"reply": response.text}
-    except Exception as e:
-        return {"reply": "Samahani, kumekuwa na tatizo la mtandao wa AI. Tafadhali jaribu tena baada ya muda kidogo!"}
+    return {"reply": reply}
 
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
@@ -1610,7 +1605,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 const data = await res.json();
                 loadingDiv.innerText = data.reply;
             }} catch(err) {{
-                loadingDiv.innerText = "Samahani, imefeli kuwasiliana na Hope AI.";
+                loadingDiv.innerText = "Samahani, imefeli kuwasiliana na Hope.";
             }}
             msgsBox.scrollTop = msgsBox.scrollHeight;
         }}
