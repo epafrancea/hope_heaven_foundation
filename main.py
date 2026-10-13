@@ -13,7 +13,7 @@ from datetime import datetime
 import pytz
 import httpx
 
-app = FastAPI(title="Hope Haven Foundation", version="15.5")
+app = FastAPI(title="Hope Haven Foundation", version="15.6")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -106,6 +106,13 @@ def init_db():
         )
     """)
     
+    # Auto-Migration: Inaongeza safu ya language kama haipo kwenye database ya zamani
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'sw'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass # Safu ipo tayari
+
     admin_user = cursor.execute("SELECT * FROM users WHERE username = 'admin'").fetchone()
     if not admin_user:
         hashed_admin_pwd = hash_password("password123")
@@ -544,7 +551,7 @@ def auth_page(mode: str = "login", error: str = None, success: str = None, usern
 
 
 @app.get("/", response_class=HTMLResponse)
-def serve_frontend(request: Request, response: Response, page: str = "home", lang: str = None, success: str = None):
+def serve_frontend(request: Request, page: str = "home", lang: str = None, success: str = None):
     username = request.cookies.get("username")
     role = request.cookies.get("role") or "user"
     if not username:
@@ -586,7 +593,6 @@ def serve_frontend(request: Request, response: Response, page: str = "home", lan
         new_count = 1
     else:
         new_count = visitor_row["count"]
-        # Unaongeza tu iwapo mtumiaji hana cookie ya leo
         if visitor_cookie != today_str:
             new_count += 1
             conn.execute("UPDATE visitors SET count = ? WHERE visit_date = ?", (new_count, today_str))
@@ -601,12 +607,6 @@ def serve_frontend(request: Request, response: Response, page: str = "home", lan
     all_users = conn.execute("SELECT id, username, contact, role, language FROM users ORDER BY id DESC").fetchall() if role == "admin" else []
     total_raised = sum([d["amount"] for d in donations]) if donations else 0
     conn.close()
-
-    # Tunatengeneza Response na kuweka Cookie ili mgeni asihesabiwe mara mbili kwa siku
-    resp_html = """
-    <!DOCTYPE html>
-    ...
-    """ # Itajazwa na maudhui hapa chini
 
     t = {
         "sw": {
@@ -1163,7 +1163,7 @@ def serve_frontend(request: Request, response: Response, page: str = "home", lan
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
                     body: JSON.stringify(data)
-                }};
+                }});
                 
                 if(res.ok) {{
                     let result = await res.json();
@@ -1412,13 +1412,13 @@ def serve_frontend(request: Request, response: Response, page: str = "home", lan
     html_content += f"""
             </div>
             <footer>
-                <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 769 868 675</p>
+                <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 710 6817</p>
                 <div class="social-links">
                     <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
-                    <a href=#"https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
+                    <a href="https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
                     <a href="https://instagram.com/hope.haven.foundation" target="_blank">📷 hope.haven.foundation</a> | 
-                    <a href=#"https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
-                    <a href=#"mailto:info@hopehaven.org">✉️ Email</a>
+                    <a href="https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
+                    <a href="mailto:info@hopehaven.org">✉️ Email</a>
                 </div>
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
             </footer>
