@@ -179,8 +179,8 @@ async def chat_with_hope(data: HopeAIPayload):
             reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
             return {"reply": reply_text}
     except Exception as e:
-        return {"reply": "Samahani, kumekuwa na tatizo la kuunganishwa na mtandao wa AI. Tafadhali jaribu tena baadaye."}
-
+        print("AI ERROR HALISI:", str(e)) 
+        return {"reply": f"Hitilafu: {str(e)}"}
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
     conn = get_db()
