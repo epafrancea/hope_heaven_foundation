@@ -160,7 +160,7 @@ class HopeAIPayload(BaseModel):
 
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
-    if not GEMINI_API_KEY or GEMINI_API_KEY == "Weka_Hapa_API_Key_Yako_Yote":
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "AQ.Ab8RN6IJUKaQ-xMYmNpYz4lOEyX7oBwXH4Q4GL5ICTiPY404Pg":
         return {"reply": "Habari! Mimi ni Hope AI Assistant. Tafadhali weka Gemini API Key halisi ndani ya faili la main.py ili nianze kukusaidia."}
 
     prompt = f"""
