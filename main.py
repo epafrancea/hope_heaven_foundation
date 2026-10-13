@@ -12,7 +12,7 @@ import shutil
 from datetime import datetime
 import pytz
 
-app = FastAPI(title="Hope Haven Foundation", version="17.0")
+app = FastAPI(title="Hope Haven Foundation", version="18.0")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -156,26 +156,32 @@ async def chat_with_hope(data: HopeAIPayload):
     msg = data.message.lower().strip()
     conn = get_db()
     
+    # Mfumo uliopanuliwa wa Hope AI wenye uwezo wa kutoa namba ya viongozi na ushauri wa ziada
     if "habari" in msg or "mambo" in msg or "hujambo" in msg or "hello" in msg or "hi" in msg:
         reply = f"Habari {data.user_name}! Mimi ni Hope, msaidizi wako wa Hope Haven Foundation. Ninawezaje kukusaidia leo?"
-    elif "mchango" in msg or "lipa" in msg or "toa" in msg or "pesa" in msg or "donate" in msg:
-        reply = "Unaweza kuchangia kwa urahisi kupitia ukurasa wetu wa Dashboard kwa kutumia namba yako ya simu (AzamPay STK Push) salama kabisa!"
-    elif "trip" in msg or "tukio" in msg or "event" in msg or "charity" in msg or "wapi" in msg:
+    elif "jina" in msg or "unaitwa" in msg or "wewe nani" in msg:
+        reply = f"Mimi naitwa Hope, AI Assistant wa Hope Haven Foundation, nipo hapa kukusaidia wewe {data.user_name} kupata taarifa za taasisi yetu!"
+    elif "mchango" in msg or "lipa" in msg or "toa" in msg or "pesa" in msg or "donate" in msg or "kutoa" in msg:
+        reply = "Unaweza kuchangia kwa urahisi kabisa kupitia ukurasa wetu wa Dashboard kwa kutumia namba yako ya simu (AzamPay STK Push). Ikiwa una mchango mkubwa au unahitaji usaidizi maalum wa malipo, ngoja nikupatie namba ya uongozi wetu: +255 710 6817 ili uweze kupiga au kutuma ujumbe kwa mawasiliano ya moja kwa moja."
+    elif "trip" in msg or "tukio" in msg or "event" in msg or "charity" in msg or "wapi" in msg or "lini" in msg:
         next_ev = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC LIMIT 1").fetchone()
         if next_ev:
-            reply = f"Tukio/Trip ijayo ya Hope Haven Foundation ni '{next_ev['title']}' itakayofanyika eneo la {next_ev['location']} tarehe {next_ev['event_date']}. Karibu sana tushiriki pamoja!"
+            reply = f"Tukio/Trip ijayo ya Hope Haven Foundation ni '{next_ev['title']}' itakayofanyika eneo la {next_ev['location']} tarehe {next_ev['event_date']}. Karibu sana tushiriki pamoja! Kwa maelezo zaidi au udhamini wa tukio hili, tafadhali piga simu kwa uongozi wetu kupitia +255 710 6817."
         else:
-            reply = "Kwa sasa hakuna tukio jipya lililotangazwa rasmi. Unaweza kuangalia ukurasa wa Matukio (Events) kwa taarifa zaidi!"
-    elif "mawasiliano" in msg or "namba" in msg or "simu" in msg or "email" in msg or "phone" in msg:
-        reply = "Unaweza kuwasiliana nasi kupitia namba ya uongozi: +255 710 6817 au kupitia barua pepe info@hopehaven.org."
-    elif "tanzania" in msg or "dar" in msg or "makao" in msg:
-        reply = "Hope Haven Foundation makao yake makuu yako Dar es Salaam, Tanzania, tukijihusisha na kusaidia jamii na makundi maalum."
+            reply = "Kwa sasa hakuna tukio jipya lililotangazwa rasmi kwenye mfumo. Unaweza kuangalia ukurasa wa Matukio (Events) au kuwasiliana na uongozi wetu moja kwa moja kwa namba +255 710 6817."
+    elif "mawasiliano" in msg or "namba" in msg or "simu" in msg or "email" in msg or "phone" in msg or "piga" in msg:
+        reply = "Unaweza kuwasiliana na uongozi wetu wakati wowote kupitia namba ya simu: +255 710 6817 au kupitia barua pepe info@hopehaven.org kwa msaada zaidi."
+    elif "tanzania" in msg or "dar" in msg or "makao" in msg or "ofisi" in msg:
+        reply = "Hope Haven Foundation makao yake makuu yako Dar es Salaam, Tanzania. Kama unataka kutembelea ofisi zetu, tafadhali piga simu kupitia +255 710 6817 ili upewe maelekezo kamili."
+    elif "lengo" in msg or "historia" in msg or "about" in msg:
+        reply = "Hope Haven Foundation ilianzishwa kusaidia jamii zenye mahitaji, kutoa elimu, na kuinua makundi maalum. Tunakaribisha wadau na wananchi wote kushirikiana nasi."
+    elif "asante" in msg or "thank" in msg:
+        reply = f"Karibu sana {data.user_name}! Hope Haven Foundation ipo kwa ajili ya kuleta matumaini mapya."
     else:
-        reply = f"Nimekupata {data.user_name}! Hope Haven Foundation inatoa huduma za kusaidia jamii, kusimamia matukio na michango. Unaweza kuuliza kuhusu michango au matukio yajayo."
+        reply = f"Nimekupata {data.user_name}! Hope Haven Foundation inatoa huduma za kusaidia jamii, kusimamia matukio na michango. Kama una swali maalum au unahitaji ufafanuzi wa kina, ngoja nikupatie namba ya uongozi wetu: +255 710 6817 ili uweze kuongea nao moja kwa moja."
     
     conn.close()
     return {"reply": reply}
-    
 
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
@@ -1534,13 +1540,13 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     html_content += f"""
             </div>
             <footer>
-                <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 710 6817</p>
+                <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 769 868 675</p>
                 <div class="social-links">
                     <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
-                    <a href="https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
+                    <a href=#"https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
                     <a href="https://instagram.com/hope.haven.foundation" target="_blank">📷 hope.haven.foundation</a> | 
-                    <a href="https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
-                    <a href="mailto:info@hopehaven.org">✉️ Email</a>
+                    <a href=#"https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
+                    <a href=#"mailto:info@hopehaven.org">✉️ Email</a>
                 </div>
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
             </footer>
