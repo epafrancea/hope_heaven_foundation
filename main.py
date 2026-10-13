@@ -154,24 +154,28 @@ class HopeAIPayload(BaseModel):
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
     msg = data.message.lower().strip()
+    conn = get_db()
     
-    # Mfumo wa Hope AI wa ndani (Smart Assistant)
     if "habari" in msg or "mambo" in msg or "hujambo" in msg or "hello" in msg or "hi" in msg:
         reply = f"Habari {data.user_name}! Mimi ni Hope, msaidizi wako wa Hope Haven Foundation. Ninawezaje kukusaidia leo?"
     elif "mchango" in msg or "lipa" in msg or "toa" in msg or "pesa" in msg or "donate" in msg:
         reply = "Unaweza kuchangia kwa urahisi kupitia ukurasa wetu wa Dashboard kwa kutumia namba yako ya simu (AzamPay STK Push) salama kabisa!"
+    elif "trip" in msg or "tukio" in msg or "event" in msg or "charity" in msg or "wapi" in msg:
+        next_ev = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC LIMIT 1").fetchone()
+        if next_ev:
+            reply = f"Tukio/Trip ijayo ya Hope Haven Foundation ni '{next_ev['title']}' itakayofanyika eneo la {next_ev['location']} tarehe {next_ev['event_date']}. Karibu sana tushiriki pamoja!"
+        else:
+            reply = "Kwa sasa hakuna tukio jipya lililotangazwa rasmi. Unaweza kuangalia ukurasa wa Matukio (Events) kwa taarifa zaidi!"
     elif "mawasiliano" in msg or "namba" in msg or "simu" in msg or "email" in msg or "phone" in msg:
         reply = "Unaweza kuwasiliana nasi kupitia namba ya uongozi: +255 710 6817 au kupitia barua pepe info@hopehaven.org."
     elif "tanzania" in msg or "dar" in msg or "makao" in msg:
         reply = "Hope Haven Foundation makao yake makuu yako Dar es Salaam, Tanzania, tukijihusisha na kusaidia jamii na makundi maalum."
-    elif "lengo" in msg or "historia" in msg or "about" in msg:
-        reply = "Lengo letu kuu ni kutoa misaada ya kibinadamu, elimu, na huduma za afya ili kuinua maisha ya jamii zenye mahitaji maalum."
-    elif "asante" in msg or "thank" in msg:
-        reply = "Karibu sana! Hope Haven Foundation ipo kwa ajili yako."
     else:
-        reply = f"Nimekupata {data.user_name}! Hope Haven Foundation inatoa huduma za kusaidia jamii, kusimamia matukio na michango. Unaweza kuuliza kuhusu michango au huduma zetu."
-
+        reply = f"Nimekupata {data.user_name}! Hope Haven Foundation inatoa huduma za kusaidia jamii, kusimamia matukio na michango. Unaweza kuuliza kuhusu michango au matukio yajayo."
+    
+    conn.close()
     return {"reply": reply}
+    
 
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
