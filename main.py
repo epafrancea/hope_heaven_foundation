@@ -13,7 +13,7 @@ from datetime import datetime
 import pytz
 import httpx
 
-app = FastAPI(title="Hope Haven Foundation", version="15.6")
+app = FastAPI(title="Hope Haven Foundation", version="15.7")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -91,7 +91,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS visitors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             visit_date TEXT,
-            count INTEGER
+            visitor_name TEXT
         )
     """)
     cursor.execute("""
@@ -111,7 +111,7 @@ def init_db():
         cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'sw'")
         conn.commit()
     except sqlite3.OperationalError:
-        pass # Safu ipo tayari
+        pass
 
     admin_user = cursor.execute("SELECT * FROM users WHERE username = 'admin'").fetchone()
     if not admin_user:
@@ -559,6 +559,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
     conn = get_db()
     
+    # 1. Kuhifadhi Lugha ya Mtumiaji
     user_row = conn.execute("SELECT language FROM users WHERE username = ?", (username,)).fetchone()
     current_lang = user_row["language"] if user_row and user_row["language"] in ["sw", "en"] else "sw"
 
@@ -566,6 +567,28 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         conn.execute("UPDATE users SET language = ? WHERE username = ?", (lang, username))
         conn.commit()
         current_lang = lang
+
+    # 2. Mantiki Sahihi ya Wageni (Visitors Today): Mtumiaji mmoja anahesabiwa mara moja pekee kwa siku
+    today_str = datetime.now(EAT_TIMEZONE).strftime("%Y-%m-%d")
+    visited_today = conn.execute("SELECT * FROM visitors WHERE visit_date = ? AND visitor_name = ?", (today_str, username)).fetchone()
+    
+    if not visited_today:
+        conn.execute("INSERT INTO visitors (visit_date, visitor_name) VALUES (?, ?)", (today_str, username))
+        conn.commit()
+
+    # Kuhesabu wageni wote TOTO wa kipekee kwa siku ya leo
+    today_visitors_count = conn.execute("SELECT COUNT(DISTINCT visitor_name) as total FROM visitors WHERE visit_date = ?", (today_str,)).fetchone()["total"]
+
+    # 3. Kutafta michango na data zote za kimfumo
+    donations = conn.execute("SELECT * FROM donations ORDER BY id DESC").fetchall()
+    chats = conn.execute("SELECT * FROM community_chats ORDER BY id DESC").fetchall()
+    next_events = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC").fetchall()
+    past_events = conn.execute("SELECT * FROM events WHERE event_type = 'past' ORDER BY id DESC").fetchall()
+    finances = conn.execute("SELECT * FROM financial_reports ORDER BY id DESC").fetchall()
+    all_users = conn.execute("SELECT id, username, contact, role, language FROM users ORDER BY id DESC").fetchall() if role == "admin" else []
+    
+    total_raised = sum([d["amount"] for d in donations]) if donations else 0
+    conn.close()
 
     bg_dir = "static/backgrounds"
     if os.path.exists(bg_dir):
@@ -583,30 +606,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
     selected_bg = bg_images_list[0]
     logo_exists = os.path.exists("static/brand/logo.jpg")
-
-    today_str = datetime.now(EAT_TIMEZONE).strftime("%Y-%m-%d")
-    visitor_cookie = request.cookies.get("visitor_date")
-
-    visitor_row = conn.execute("SELECT * FROM visitors WHERE visit_date = ?", (today_str,)).fetchone()
-    if not visitor_row:
-        conn.execute("INSERT INTO visitors (visit_date, count) VALUES (?, 1)", (today_str,))
-        new_count = 1
-    else:
-        new_count = visitor_row["count"]
-        if visitor_cookie != today_str:
-            new_count += 1
-            conn.execute("UPDATE visitors SET count = ? WHERE visit_date = ?", (new_count, today_str))
-
-    conn.commit()
-
-    donations = conn.execute("SELECT * FROM donations ORDER BY id DESC").fetchall()
-    chats = conn.execute("SELECT * FROM community_chats ORDER BY id DESC").fetchall()
-    next_events = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC").fetchall()
-    past_events = conn.execute("SELECT * FROM events WHERE event_type = 'past' ORDER BY id DESC").fetchall()
-    finances = conn.execute("SELECT * FROM financial_reports ORDER BY id DESC").fetchall()
-    all_users = conn.execute("SELECT id, username, contact, role, language FROM users ORDER BY id DESC").fetchall() if role == "admin" else []
-    total_raised = sum([d["amount"] for d in donations]) if donations else 0
-    conn.close()
 
     t = {
         "sw": {
@@ -932,30 +931,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             .prev-btn {{ left: 15px; }}
             .next-btn {{ right: 15px; }}
 
-            footer {{
-                background: rgba(15, 23, 42, 0.95);
-                border-top: 1px solid rgba(255, 255, 255, 0.1);
-                text-align: center;
-                padding: 20px;
-                margin-top: 40px;
-                border-radius: 10px;
-                color: #94a3b8;
-                font-size: 14px;
-            }}
-            footer p {{ margin: 5px 0; }}
-            .social-links {{
-                margin-top: 10px;
-            }}
-            .social-links a {{
-                color: #60a5fa;
-                text-decoration: none;
-                margin: 0 10px;
-                font-weight: 600;
-            }}
-            .social-links a:hover {{
-                text-decoration: underline;
-            }}
-
             .mobile-nav-bar {{
                 display: none;
             }}
@@ -1088,7 +1063,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 </div>
                 <div class="metric-card">
                     <h3>{t['visitors']}</h3>
-                    <p>{new_count}</p>
+                    <p>{today_visitors_count}</p>
                 </div>
             </div>
 
@@ -1412,6 +1387,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     html_content += f"""
             </div>
             <footer>
+
                 <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 710 6817</p>
                 <div class="social-links">
                     <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
