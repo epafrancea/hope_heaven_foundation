@@ -158,29 +158,35 @@ class HopeAIPayload(BaseModel):
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
     if not GEMINI_API_KEY or GEMINI_API_KEY == "Weka_Hapa_API_Key_Yako_Yote":
-        return {"reply": "Habari! Mimi ni Hope AI Assistant. Tafadhali weka Gemini API Key halisi ndani ya faili la main.py ili nianze kujibu maswali yako."}
+        return {"reply": "Habari! Tafadhali weka Gemini API Key halisi ndani ya main.py."}
 
     prompt = f"""
-    Wewe ni Hope, AI Assistant rafiki, mwenye elimu, na mwenye huruma wa taasisi ya 'Hope Haven Foundation' iliyoko Dar es Salaam, Tanzania.
-    Lengo la taasisi ni kutoa misaada ya kibinadamu, usawa, na kuinua maisha ya jamii zenye mahitaji.
-    Unazungumza na mtumiaji anayeitwa {data.user_name}.
-    Jibu ujumbe wake kwa usahihi, heshima na uwe mfupi (mistari 2 hadi 4). Zungumza kwa lugha aliyotumia mtumiaji (Kiswahili au Kiingereza).
-    Ujumbe wa mtumiaji: "{data.message}"
+    Wewe ni Hope, AI Assistant rafiki wa taasisi ya 'Hope Haven Foundation' Dar es Salaam.
+    Jibu kwa heshima, fupi (mistari 2-3), kwa lugha aliyotumia mtumiaji ({data.user_name}).
+    Ujumbe: "{data.message}"
     """
 
     try:
         async with httpx.AsyncClient() as client:
+            # Tunajaribu kutumia gemini-2.5-flash au tunaondoa version ili ijichagulie yenyewe
             response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}",
                 json={"contents": [{"parts": [{"text": prompt}]}]},
                 timeout=20.0
             )
             res_data = response.json()
-            reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
-            return {"reply": reply_text}
+            
+            # Tunakagua kama jibu limekuja vizuri au lina error
+            if "candidates" in res_data and len(res_data["candidates"]) > 0:
+                reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
+                return {"reply": reply_text}
+            else:
+                # Kama kuna error ya API key au model, tunairudisha wazi ili uzione
+                error_msg = res_data.get("error", {}).get("message", "Hitilafu haijulikani kutoka Google AI.")
+                return {"reply": f"Hitilafu ya AI: {error_msg}"}
+                
     except Exception as e:
-        print("AI ERROR HALISI:", str(e)) 
-        return {"reply": f"Hitilafu: {str(e)}"}
+        return {"reply": f"Hitilafu ya mtandao: {str(e)}"}
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
     conn = get_db()
