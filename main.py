@@ -16,9 +16,9 @@ import google.generativeai as genai
 app = FastAPI(title="Hope Haven Foundation", version="16.0")
 
 # Weka API Key yako ya Gemini hapa
-GEMINI_API_KEY = "Weka_Hapa_API_Key_Yako_Yote"
+GEMINI_API_KEY = "AQ.Ab8RN6IJUKaQ-xMYmNpYz4lOEyX7oBwXH4Q4GL5ICTiPY404Pg"
 
-if GEMINI_API_KEY and GEMINI_API_KEY != "Weka_Hapa_API_Key_Yako_Yote":
+if GEMINI_API_KEY and GEMINI_API_KEY != "AQ.Ab8RN6IJUKaQ-xMYmNpYz4lOEyX7oBwXH4Q4GL5ICTiPY404Pg":
     genai.configure(api_key=GEMINI_API_KEY)
 
 def hash_password(password: str) -> str:
