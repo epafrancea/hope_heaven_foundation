@@ -168,20 +168,19 @@ async def chat_with_hope(data: HopeAIPayload):
 
     try:
         async with httpx.AsyncClient() as client:
-            # Tunajaribu kutumia gemini-2.5-flash au tunaondoa version ili ijichagulie yenyewe
+            # Tunatumia header ya x-goog-api-key badala ya kuweka key kwenye URL (kuzuia makosa ya AQ keys)
             response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+                headers={"x-goog-api-key": GEMINI_API_KEY},
                 json={"contents": [{"parts": [{"text": prompt}]}]},
                 timeout=20.0
             )
             res_data = response.json()
             
-            # Tunakagua kama jibu limekuja vizuri au lina error
             if "candidates" in res_data and len(res_data["candidates"]) > 0:
                 reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
                 return {"reply": reply_text}
             else:
-                # Kama kuna error ya API key au model, tunairudisha wazi ili uzione
                 error_msg = res_data.get("error", {}).get("message", "Hitilafu haijulikani kutoka Google AI.")
                 return {"reply": f"Hitilafu ya AI: {error_msg}"}
                 
