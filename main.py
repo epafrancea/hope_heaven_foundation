@@ -15,7 +15,7 @@ import httpx
 
 app = FastAPI(title="Hope Haven Foundation", version="15.8")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("AQ.Ab8RN6LU81NO2v7O0ZrrMnqve4snWYOYSxRJ8Bl9re2xHu_UKA", "")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -1450,24 +1450,90 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 </form>
             </div>
         """
+
     html_content += f"""
             </div>
             <footer>
                 <p><b>📍 Headquarters:</b> Dar es Salaam, Tanzania | 📞 <b>Leadership Line:</b> +255 710 6817</p>
                 <div class="social-links">
                     <a href="https://chat.whatsapp.com/KMoUHndYyie9tVoiwYpFL6" target="_blank">🌐 WhatsApp Group</a> | 
-                    <a href=#"https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
+                    <a href="https://facebook.com/hopehavenfoundation" target="_blank">📘 Facebook</a> | 
                     <a href="https://instagram.com/hope.haven.foundation" target="_blank">📷 hope.haven.foundation</a> | 
-                    <a href=#"https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
-                    <a href=#"mailto:info@hopehaven.org">✉️ Email</a>
+                    <a href="https://x.com/hopehaven" target="_blank">🐦 Twitter / X</a> | 
+                    <a href="mailto:info@hopehaven.org">✉️ Email</a>
                 </div>
                 <p style="margin-top: 10px; font-size: 12px;">© {datetime.now(EAT_TIMEZONE).year} Hope Haven Foundation. All rights reserved.</p>
             </footer>
         </div>
+
+        <!-- HOPE AI FLOATING WIDGET (Kwenye Kila Ukurasa) -->
+        <button class="ai-widget-btn" onclick="toggleAIChat()" title="Ongea na Hope AI">🤖</button>
+
+        <div class="ai-chat-box" id="aiChatBox">
+            <div class="ai-chat-header">
+                <span>🤖 Hope AI Assistant</span>
+                <span style="cursor: pointer;" onclick="toggleAIChat()">✖</span>
+            </div>
+            <div class="ai-chat-messages" id="aiMessages">
+                <div class="msg-ai">Habari <b>{username}</b>! Mimi ni <b>Hope AI</b>, msaidizi wako. Una swali lolote kuhusu Hope Haven Foundation au huduma zetu?</div>
+            </div>
+            <div class="ai-chat-input">
+                <input type="text" id="aiInput" placeholder="Andika ujumbe wako..." onkeypress="handleAIPress(event)">
+                <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="sendAIMessage()">Tuma</button>
+            </div>
+        </div>
+        
         <script>
         function toggleMenu() {{
             const sidebar = document.getElementById('appSidebar');
             sidebar.classList.toggle('show');
+        }}
+
+        function toggleAIChat() {{
+            const box = document.getElementById('aiChatBox');
+            box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
+        }}
+
+        function handleAIPress(e) {{
+            if (e.key === 'Enter') {{
+                sendAIMessage();
+            }}
+        }}
+
+        async function sendAIMessage() {{
+            const input = document.getElementById('aiInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const msgsBox = document.getElementById('aiMessages');
+
+            // Onyesha ujumbe wa mtumiaji
+            const userDiv = document.createElement('div');
+            userDiv.className = 'msg-user';
+            userDiv.innerText = msg;
+            msgsBox.appendChild(userDiv);
+            input.value = '';
+            msgsBox.scrollTop = msgsBox.scrollHeight;
+
+            // Onyesha indicator ya Loading
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'msg-ai';
+            loadingDiv.innerText = "Hope anafikiri...";
+            msgsBox.appendChild(loadingDiv);
+            msgsBox.scrollTop = msgsBox.scrollHeight;
+
+            try {{
+                const res = await fetch('/api/hope-ai', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{ message: msg, user_name: '{username}' }})
+                }});
+                const data = await res.json();
+                loadingDiv.innerText = data.reply;
+            }} catch(err) {{
+                loadingDiv.innerText = "Samahani, imefeli kuwasiliana na Hope AI.";
+            }}
+            msgsBox.scrollTop = msgsBox.scrollHeight;
         }}
 
         const bgImages = {bg_images_list};
@@ -1502,9 +1568,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
     </html>
     """
     
-    response = Response(content=html_content, media_type="text/html")
-    response.set_cookie(key="visitor_date", value=today_str, httponly=True, samesite="lax")
-    return response
+    return HTMLResponse(content=html_content)
 
 if __name__ == "__main__":
     import uvicorn
