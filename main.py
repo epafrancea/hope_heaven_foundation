@@ -13,9 +13,10 @@ from datetime import datetime
 import pytz
 import httpx
 
-app = FastAPI(title="Hope Haven Foundation", version="15.8")
+app = FastAPI(title="Hope Haven Foundation", version="15.9")
 
-GEMINI_API_KEY = "AQ.Ab8RN6LU81NO2v7O0ZrrMnqve4snWYOYSxRJ8Bl9re2xHu_UKA"
+# Weka API Key yako ya Gemini hapa moja kwa moja
+GEMINI_API_KEY = "Weka_Hapa_API_Key_Yako_Yote"
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -156,8 +157,8 @@ class HopeAIPayload(BaseModel):
 
 @app.post("/api/hope-ai")
 async def chat_with_hope(data: HopeAIPayload):
-    if not GEMINI_API_KEY:
-        return {"reply": "Habari! Mimi ni Hope AI Assistant. Kwa sasa mfumo unahitaji kuunganishwa na GEMINI_API_KEY ili nianze kujibu maswali yako kwa usahihi."}
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "Weka_Hapa_API_Key_Yako_Yote":
+        return {"reply": "Habari! Mimi ni Hope AI Assistant. Tafadhali weka Gemini API Key halisi ndani ya faili la main.py ili nianze kujibu maswali yako."}
 
     prompt = f"""
     Wewe ni Hope, AI Assistant rafiki, mwenye elimu, na mwenye huruma wa taasisi ya 'Hope Haven Foundation' iliyoko Dar es Salaam, Tanzania.
@@ -172,13 +173,13 @@ async def chat_with_hope(data: HopeAIPayload):
             response = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}",
                 json={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=15.0
+                timeout=20.0
             )
             res_data = response.json()
             reply_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
             return {"reply": reply_text}
-    except Exception:
-        return {"reply": "Samahani, kumekuwa na tatizo la mtandao. Tafadhali jaribu kuniuliza tena baada ya muda kidogo!"}
+    except Exception as e:
+        return {"reply": "Samahani, kumekuwa na tatizo la kuunganishwa na mtandao wa AI. Tafadhali jaribu tena baadaye."}
 
 @app.post("/api/chat")
 def post_message(data: ChatPayload):
@@ -208,7 +209,6 @@ def receive_donation(data: DonationPayload):
 
 @app.post("/api/payment/azampay-stk")
 def request_azampay_stk(data: AzamPayStkPayload):
-    token = "1a6605bd-fee4-4eb2-a0e0-a4295b749caf"
     payload = {
         "accountNumber": "HopeHavenFoundation",
         "amount": str(data.amount),
@@ -903,6 +903,86 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 display: inline-block;
             }}
             .btn:hover {{ background-color: #1d4ed8; }}
+            
+            .slider-container {{
+                position: relative;
+                max-width: 100%;
+                height: 520px;
+                margin: 15px 0;
+                overflow: hidden;
+                border-radius: 12px;
+                background: rgba(15, 23, 42, 0.6);
+                box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+            }}
+            .slide {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0;
+                transition: opacity 0.6s ease-in-out;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }}
+            .slide.active {{
+                opacity: 1;
+            }}
+            .slide img {{
+                max-width: 100%;
+                max-height: 100%;
+                width: auto;
+                height: auto;
+                object-fit: contain;
+                border-radius: 8px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+            }}
+            .slider-btn {{
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                background: rgba(0, 0, 0, 0.6);
+                color: white;
+                border: none;
+                padding: 12px 16px;
+                cursor: pointer;
+                font-size: 18px;
+                border-radius: 50%;
+                z-index: 10;
+                transition: background 0.3s;
+            }}
+            .slider-btn:hover {{
+                background: rgba(37, 99, 235, 0.9);
+            }}
+            .prev-btn {{ left: 15px; }}
+            .next-btn {{ right: 15px; }}
+
+            /* FOOTER STYLES */
+            footer {{
+                background: rgba(15, 23, 42, 0.95);
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                text-align: center;
+                padding: 20px;
+                margin-top: 40px;
+                border-radius: 10px;
+                color: #94a3b8;
+                font-size: 14px;
+                flex-shrink: 0;
+            }}
+            footer p {{ margin: 5px 0; }}
+            .social-links {{
+                margin-top: 10px;
+            }}
+            .social-links a {{
+                color: #60a5fa;
+                text-decoration: none;
+                margin: 0 10px;
+                font-weight: 600;
+            }}
+            .social-links a:hover {{
+                text-decoration: underline;
+            }}
 
             /* HOPE AI FLOATING WIDGET STYLES */
             .ai-widget-btn {{
@@ -1064,6 +1144,10 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
                 .card-container {{
                     flex-direction: column !important;
+                }}
+
+                .slider-container {{
+                    height: 250px !important;
                 }}
 
                 table {{
@@ -1466,7 +1550,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             </footer>
         </div>
 
-        <!-- HOPE AI FLOATING WIDGET (Kwenye Kila Ukurasa) -->
+        <!-- HOPE AI FLOATING WIDGET -->
         <button class="ai-widget-btn" onclick="toggleAIChat()" title="Ongea na Hope AI">🤖</button>
 
         <div class="ai-chat-box" id="aiChatBox">
@@ -1507,7 +1591,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
             const msgsBox = document.getElementById('aiMessages');
 
-            // Onyesha ujumbe wa mtumiaji
             const userDiv = document.createElement('div');
             userDiv.className = 'msg-user';
             userDiv.innerText = msg;
@@ -1515,7 +1598,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             input.value = '';
             msgsBox.scrollTop = msgsBox.scrollHeight;
 
-            // Onyesha indicator ya Loading
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'msg-ai';
             loadingDiv.innerText = "Hope anafikiri...";
