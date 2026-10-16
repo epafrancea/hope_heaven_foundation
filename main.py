@@ -12,7 +12,7 @@ import shutil
 from datetime import datetime
 import pytz
 
-app = FastAPI(title="Hope Haven Foundation", version="24.0")
+app = FastAPI(title="Hope Haven Foundation", version="25.0")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password[:72].encode('utf-8')
@@ -158,52 +158,79 @@ async def chat_with_hope(data: HopeAIPayload):
     conn = get_db()
     lang = data.lang if data.lang in ["sw", "en"] else "sw"
     
+    # INTENT RECOGNITION (UTAMBUZI WA MANENO MENGI)
     if lang == "en":
-        if any(w in msg for w in ["hello", "hi", "hey", "greetings"]):
-            reply = f"Hello {data.user_name}! I am Hope, your AI Assistant at Hope Haven Foundation. How can I assist you today?"
-        elif any(w in msg for w in ["name", "who are you", "who's this"]):
-            reply = f"My name is Hope, the AI Assistant for Hope Haven Foundation, here to help you get information about our organization!"
-        elif any(w in msg for w in ["donate", "donation", "pay", "money", "contribute"]):
-            reply = "You can easily donate via our Dashboard using mobile money (AzamPay STK Push). If you have a major sponsorship or need direct guidance, here is our leadership line: +255 710 6817 to call or message us directly."
-        elif any(w in msg for w in ["trip", "event", "next", "charity", "where", "when"]):
+        if any(w in msg for w in ["hello", "hi", "hey", "greetings", "morning", "evening", "afternoon"]):
+            reply = f"Hello {data.user_name}! Welcome to Hope Haven Foundation.<br>I am Hope, your virtual AI assistant here to guide you."
+        
+        elif any(w in msg for w in ["name", "who are you", "who's this", "identity"]):
+            reply = f"I am Hope, the AI Assistant for Hope Haven Foundation.<br>I can provide info about our events, history, and donations."
+        
+        elif any(w in msg for w in ["donate", "donation", "pay", "money", "contribute", "financial", "support", "m-pesa", "tigopesa", "airtel"]):
+            reply = "You can easily donate using mobile money via our Dashboard (AzamPay STK Push).<br>Select your mobile network, enter the amount, and confirm the prompt on your phone."
+        
+        elif any(w in msg for w in ["trip", "event", "next", "charity", "where", "when", "program", "upcoming"]):
             next_ev = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC LIMIT 1").fetchone()
             if next_ev:
-                reply = f"The upcoming trip/event for Hope Haven Foundation is '{next_ev['title']}' at {next_ev['location']} on {next_ev['event_date']}. You are warmly welcome! For sponsorships, feel free to contact leadership at +255 710 6817."
+                reply = f"Our next event is '{next_ev['title']}'.<br>Location: {next_ev['location']} | Date: {next_ev['event_date']}.<br>You are warmly welcome to join us!"
             else:
-                reply = "Currently, no new event has been officially posted. Please check the Events page or contact our leadership directly at +255 769 868 675."
-        elif any(w in msg for w in ["contact", "phone", "number", "email", "call"]):
-            reply = "You can reach our leadership anytime via phone: +255 710 6817 or email info@hopehaven.org for further assistance."
-        elif any(w in msg for w in ["tanzania", "dar", "headquarters", "office", "location"]):
-            reply = "Hope Haven Foundation is headquartered in Dar es Salaam, Tanzania. If you wish to visit our office, please call +255 769 868 675 for full directions."
-        elif any(w in msg for w in ["about", "history", "mission", "vision"]):
-            reply = "Hope Haven Foundation was established to assist vulnerable communities, provide education, and empower underprivileged groups."
-        elif any(w in msg for w in ["thanks", "thank you"]):
-            reply = f"You are welcome, {data.user_name}! Hope Haven Foundation is here to bring hope."
+                reply = "There are no upcoming events scheduled at the moment.<br>Please stay tuned on our Events tab for future announcements."
+        
+        elif any(w in msg for w in ["history", "about", "mission", "vision", "goal", "purpose", "who founded"]):
+            reply = "Hope Haven Foundation empowers underprivileged communities through education and humanitarian aid.<br>Our vision is an equal society where everyone lives with hope and opportunities."
+        
+        elif any(w in msg for w in ["office", "location", "headquarters", "where are you", "tanzania", "dar"]):
+            reply = "Our main headquarters are located in Dar es Salaam, Tanzania.<br>We extend our charity programs to various regions across the country."
+        
+        elif any(w in msg for w in ["volunteer", "join", "member", "participate", "work", "help us"]):
+            reply = "We warmly welcome volunteers and partners to support our daily community drives.<br>You can actively participate in our charity events or share our initiatives."
+        
+        elif any(w in msg for w in ["contact", "phone", "number", "email", "call", "reach", "leadership", "admin"]):
+            reply = "You can reach our official leadership line directly:<br>Phone: +255 710 6817<br>Email: info@hopehaven.org"
+        
+        elif any(w in msg for w in ["thanks", "thank you", "asante", "appreciate"]):
+            reply = f"You're most welcome, {data.user_name}!<br>Hope Haven Foundation appreciates your love and support."
+        
         else:
-            reply = f"I hear you {data.user_name}! Hope Haven Foundation provides community services, event management, and donation support. For direct queries, reach our leadership line: +255 710 6817."
+            # FALLBACK STATEMENT (KIKOSA JIBU NDIO CHAT YA MWISHO INATOA NAMBA YA UONGOZI)
+            reply = f"I could not fully grasp your request, {data.user_name}.<br>For specific assistance, please reach out to our leadership directly via phone: +255 769 868 675."
+
     else:
-        if any(w in msg for w in ["habari", "mambo", "hujambo", "hello", "hi"]):
-            reply = f"Habari {data.user_name}! Mimi ni Hope, msaidizi wako wa Hope Haven Foundation. Ninawezaje kukusaidia leo?"
-        elif any(w in msg for w in ["jina", "unaitwa", "wewe nani"]):
-            reply = f"Mimi naitwa Hope, AI Assistant wa Hope Haven Foundation, nipo hapa kukusaidia wewe {data.user_name} kupata taarifa za taasisi yetu!"
-        elif any(w in msg for w in ["mchango", "lipa", "toa", "pesa", "donate", "kutoa"]):
-            reply = "Unaweza kuchangia kwa urahisi kabisa kupitia ukurasa wetu wa Dashboard kwa kutumia namba yako ya simu (AzamPay STK Push). Ikiwa una mchango mkubwa au unahitaji usaidizi maalum wa malipo, ngoja nikupatie namba ya uongozi wetu: +255 710 6817 ili uweze kupiga au kutuma ujumbe kwa mawasiliano ya moja kwa moja."
-        elif any(w in msg for w in ["trip", "tukio", "event", "charity", "wapi", "lini"]):
+        # KISWAHILI INTENT ENGINE
+        if any(w in msg for w in ["habari", "mambo", "hujambo", "hello", "hi", "hey", "za siku", "za uzima", "za kazi"]):
+            reply = f"Habari {data.user_name}! Karibu Hope Haven Foundation.<br>Mimi ni Hope, msaidizi wako wa kidijitali niliye tayari kutoa msaada."
+        
+        elif any(w in msg for w in ["jina", "unaitwa", "wewe nani", "mimi nani"]):
+            reply = f"Naitwa Hope, Msaidizi wa AI wa Hope Haven Foundation.<br>Kazi yangu ni kutoa taarifa za matukio, historia, na njia za kutoa michango."
+        
+        elif any(w in msg for w in ["mchango", "lipa", "toa", "pesa", "donate", "kutoa", "changia", "fedha", "m-pesa", "tigopesa", "azampesa", "stk"]):
+            reply = "Unaweza kuchangia kwa urahisi kupitia ukurasa wa Dashboard ukitumia AzamPay STK Push.<br>Jaza namba yako na kiasi, kisha utapokea ombi la neno la siri kwenye simu yako."
+        
+        elif any(w in msg for w in ["trip", "tukio", "event", "charity", "wapi", "lini", "safari", "yajayo", "ratiba"]):
             next_ev = conn.execute("SELECT * FROM events WHERE event_type = 'next' ORDER BY id DESC LIMIT 1").fetchone()
             if next_ev:
-                reply = f"Tukio/Trip ijayo ya Hope Haven Foundation ni '{next_ev['title']}' itakayofanyika eneo la {next_ev['location']} tarehe {next_ev['event_date']}. Karibu sana tushiriki pamoja! Kwa maelezo zaidi au udhamini wa tukio hili, tafadhali piga simu kwa uongozi wetu kupitia +255 710 6817."
+                reply = f"Tukio lijalo ni '{next_ev['title']}'.<br>Eneo: {next_ev['location']} | Tarehe: {next_ev['event_date']}.<br>Karibu sana tushiriki pamoja kupendana na kusaidiana!"
             else:
-                reply = "Kwa sasa hakuna tukio jipya lililotangazwa rasmi kwenye mfumo. Unaweza kuangalia ukurasa wa Matukio (Events) au kuwasiliana na uongozi wetu moja kwa moja kwa namba +255 710 6817."
-        elif any(w in msg for w in ["mawasiliano", "namba", "simu", "email", "phone", "piga"]):
-            reply = "Unaweza kuwasiliana na uongozi wetu wakati wowote kupitia namba ya simu: +255 710 6817 au kupitia barua pepe info@hopehaven.org kwa msaada zaidi."
-        elif any(w in msg for w in ["tanzania", "dar", "makao", "ofisi"]):
-            reply = "Hope Haven Foundation makao yake makuu yako Dar es Salaam, Tanzania. Kama unataka kutembelea ofisi zetu, tafadhali piga simu kupitia +255 769 868 675 ili upewe maelekezo kamili."
-        elif any(w in msg for w in ["lengo", "historia", "about"]):
-            reply = "Hope Haven Foundation ilianzishwa kusaidia jamii zenye mahitaji, kutoa elimu, na kuinua makundi maalum. Tunakaribisha wadau na wananchi wote kushirikiana nasi."
-        elif any(w in msg for w in ["asante", "thank"]):
-            reply = f"Karibu sana {data.user_name}! Hope Haven Foundation ipo kwa ajili ya kuleta matumaini mapya."
+                reply = "Kwa sasa hakuna tukio jipya lililowekwa kwenye mfumo.<br>Tafadhali endelea kufuatilia ukurasa wa Matukio kwa taarifa mpya."
+        
+        elif any(w in msg for w in ["lengo", "historia", "dira", "dhumuni", "about", "kazi zenu", "taasisi", "msingi"]):
+            reply = "Hope Haven Foundation ilianzishwa kusaidia jamii zenye mahitaji, elimu na afya.<br>Dira yetu ni kujenga jamii yenye usawa na matumaini mapya ya kimaisha."
+        
+        elif any(w in msg for w in ["ofisi", "makao", "mpo wapi", "dar", "tanzania", "mtaani"]):
+            reply = "Makao makuu ya Hope Haven Foundation yapo Dar es Salaam, Tanzania.<br>Tunafanya kazi ya kutoa misaada katika mikoa mbalimbali nchini."
+        
+        elif any(w in msg for w in ["kujitolea", "kujiunga", "mwanachama", "kushiriki", "kusaidia", "fursa"]):
+            reply = "Tunakaribisha wanajamii na wadau wote kujitolea katika matukio yetu ya hisani.<br>Unaweza kushiriki kwenye safari za kutoa misaada au kusambaza ujumbe wetu."
+        
+        elif any(w in msg for w in ["mawasiliano", "namba", "simu", "email", "phone", "piga", "uongozi", "ongea"]):
+            reply = "Unaweza kuwasiliana na uongozi wetu moja kwa moja kupitia:<br>Simu: +255 769 868 675<br>Email: info@hopehaven.org"
+        
+        elif any(w in msg for w in ["asante", "shukrani", "nashukuru", "vizuri", "poa"]):
+            reply = f"Karibu sana {data.user_name}!<br>Hope Haven Foundation ipo kwa ajili ya kuleta matumaini na ushirikiano."
+        
         else:
-            reply = f"Nimekupata {data.user_name}! Hope Haven Foundation inatoa huduma za kusaidia jamii, kusimamia matukio na michango. Kama una swali maalum au unahitaji ufafanuzi wa kina, ngoja nikupatie namba ya uongozi wetu: +255 710 6817 ili uweze kuongea nao moja kwa moja."
+            # FALLBACK STATEMENT (KIKOSA JIBU NDIO CHAT YA MWISHO INATOA NAMBA YA UONGOZI)
+            reply = f"Sijafanikiwa kuelewa vizuri swali lako, {data.user_name}.<br>Kwa usaidizi wa kina, tafadhali wasiliana na uongozi wetu moja kwa moja kwa simu: +255 769 868 675."
     
     conn.close()
     return {"reply": reply}
@@ -795,7 +822,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             "save_finance": "Hifadhi Ripoti ya Fedha",
             "settings_title": "🛠️ Mipangilio ya Mfumo",
             "select_lang": "Chagua Lugha (Language):",
-            "ai_welcome": f"Habari <b>{username}</b>! Mimi ni <b>Hope AI</b>, msaidizi wako. Una swali lolote au unataka kuongea nami kwa sauti?",
+            "ai_welcome": f"Habari <b>{username}</b>! Mimi ni <b>Hope AI</b>.<br>Una swali au unataka kuongea nami kwa sauti?",
             "ai_input_placeholder": "Andika au tumia mic...",
             "chat_placeholder": "Andika ujumbe wako hapa...",
             "del_img_btn": "🗑️ Futa Picha Hii",
@@ -856,7 +883,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             "save_finance": "Save Financial Report",
             "settings_title": "🛠️ System Settings",
             "select_lang": "Select Language:",
-            "ai_welcome": f"Hello <b>{username}</b>! I am <b>Hope AI</b>, your assistant. Ask me anything or speak using the microphone!",
+            "ai_welcome": f"Hello <b>{username}</b>! I am <b>Hope AI</b>.<br>Ask me anything or talk to me using voice!",
             "ai_input_placeholder": "Type or click mic...",
             "chat_placeholder": "Type your message here...",
             "del_img_btn": "🗑️ Delete Image",
@@ -1075,7 +1102,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 overflow-y: auto;
             }}
 
-            /* iPHONE / WHATSAPP CHAT STYLES */
+            /* CHAT STYLES */
             .chat-zone {{
                 display: flex;
                 flex-direction: column;
@@ -1193,7 +1220,6 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
             .prev-btn {{ left: 15px; }}
             .next-btn {{ right: 15px; }}
 
-            /* FOOTER STYLES */
             footer {{
                 background: rgba(15, 23, 42, 0.95);
                 border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -1206,18 +1232,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 flex-shrink: 0;
             }}
             footer p {{ margin: 5px 0; }}
-            .social-links {{
-                margin-top: 10px;
-            }}
-            .social-links a {{
-                color: #60a5fa;
-                text-decoration: none;
-                margin: 0 10px;
-                font-weight: 600;
-            }}
-            .social-links a:hover {{
-                text-decoration: underline;
-            }}
+            .social-links {{ margin-top: 10px; }}
+            .social-links a {{ color: #60a5fa; text-decoration: none; margin: 0 10px; font-weight: 600; }}
+            .social-links a:hover {{ text-decoration: underline; }}
 
             /* HOPE AI FLOATING WIDGET STYLES */
             .ai-widget-btn {{
@@ -1239,9 +1256,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 justify-content: center;
                 transition: transform 0.3s;
             }}
-            .ai-widget-btn:hover {{
-                transform: scale(1.1);
-            }}
+            .ai-widget-btn:hover {{ transform: scale(1.1); }}
 
             .ai-chat-box {{
                 position: fixed;
@@ -1286,8 +1301,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 color: white;
                 padding: 10px 12px;
                 border-radius: 12px 12px 12px 0;
-                max-width: 80%;
+                max-width: 85%;
                 align-self: flex-start;
+                line-height: 1.4;
             }}
 
             .msg-user {{
@@ -1295,8 +1311,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 color: white;
                 padding: 10px 12px;
                 border-radius: 12px 12px 0 12px;
-                max-width: 80%;
+                max-width: 85%;
                 align-self: flex-end;
+                line-height: 1.4;
             }}
 
             .ai-chat-input {{
@@ -1339,9 +1356,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                 100% {{ transform: scale(1); }}
             }}
 
-            .mobile-nav-bar {{
-                display: none;
-            }}
+            .mobile-nav-bar {{ display: none; }}
 
             @media (max-width: 768px) {{
                 body {{
@@ -1389,9 +1404,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 }}
 
-                .sidebar.show {{
-                    display: flex !important;
-                }}
+                .sidebar.show {{ display: flex !important; }}
 
                 .main-content {{
                     height: auto !important;
@@ -1399,13 +1412,9 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                     overflow-y: visible !important;
                 }}
 
-                .card-container {{
-                    flex-direction: column !important;
-                }}
+                .card-container {{ flex-direction: column !important; }}
 
-                .slider-container {{
-                    height: 250px !important;
-                }}
+                .slider-container {{ height: 250px !important; }}
 
                 table {{
                     display: block !important;
@@ -1917,7 +1926,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
         <div class="ai-chat-box" id="aiChatBox">
             <div class="ai-chat-header">
-                <span>👽 Hope AI Voice Assistant</span>
+                <span>👽 Hope AI Assistant</span>
                 <span style="cursor: pointer;" onclick="toggleAIChat()">✖</span>
             </div>
             <div class="ai-chat-messages" id="aiMessages">
@@ -1950,8 +1959,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         // Text-To-Speech (Kusoma majibu kwa sauti)
         function speakText(text) {{
             if ('speechSynthesis' in window) {{
-                window.speechSynthesis.cancel(); // Sitisha sauti za nyuma
-                // Safisha alama za HTML
+                window.speechSynthesis.cancel();
                 let cleanText = text.replace(/<[^>]*>?/gm, '');
                 let utterance = new SpeechSynthesisUtterance(cleanText);
                 utterance.lang = '{current_lang}' === 'sw' ? 'sw-TZ' : 'en-US';
@@ -1963,34 +1971,43 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
         let recognition = null;
         let isRecording = false;
 
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {{
+        function initSpeechRecognition() {{
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = '{current_lang}' === 'sw' ? 'sw-TZ' : 'en-US';
+            if (!SpeechRecognition) return null;
 
-            recognition.onstart = function() {{
+            let rec = new SpeechRecognition();
+            rec.continuous = false;
+            rec.interimResults = false;
+            rec.lang = '{current_lang}' === 'sw' ? 'sw-TZ' : 'en-US';
+
+            rec.onstart = function() {{
                 isRecording = true;
                 const micBtn = document.getElementById('micBtn');
-                micBtn.classList.add('recording');
-                micBtn.innerText = '🛑';
+                if (micBtn) {{
+                    micBtn.classList.add('recording');
+                    micBtn.innerText = '🛑';
+                }}
             }};
 
-            recognition.onresult = function(event) {{
+            rec.onresult = function(event) {{
                 const transcript = event.results[0][0].transcript;
                 document.getElementById('aiInput').value = transcript;
-                sendAIMessage(); // Tuma kiotomatiki mara tu akimaliza kuongea
+                sendAIMessage();
             }};
 
-            recognition.onerror = function(event) {{
+            rec.onerror = function(event) {{
                 console.error("Speech Recognition Error: ", event.error);
                 stopRecordingState();
+                if (event.error === 'not-allowed') {{
+                    alert('Tafadhali ruhusu Maikrofoni kwenye browser ya simu yako.');
+                }}
             }};
 
-            recognition.onend = function() {{
+            rec.onend = function() {{
                 stopRecordingState();
             }};
+
+            return rec;
         }}
 
         function stopRecordingState() {{
@@ -2004,14 +2021,23 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
         function toggleVoiceRecognition() {{
             if (!recognition) {{
-                alert('Samahani, kivinjari chako hakitumii Speech Recognition. Tumia Chrome au Edge.');
+                recognition = initSpeechRecognition();
+            }}
+
+            if (!recognition) {{
+                alert('Kivinjari chako hakisaidii Speech Recognition. Tumia Google Chrome au Microsoft Edge.');
                 return;
             }}
 
             if (isRecording) {{
                 recognition.stop();
             }} else {{
-                recognition.start();
+                try {{
+                    recognition.start();
+                }} catch(e) {{
+                    recognition.stop();
+                    setTimeout(() => recognition.start(), 300);
+                }}
             }}
         }}
 
@@ -2024,7 +2050,7 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
 
             const userDiv = document.createElement('div');
             userDiv.className = 'msg-user';
-            userDiv.innerText = msg;
+            userDiv.innerHTML = msg;
             msgsBox.appendChild(userDiv);
             input.value = '';
             msgsBox.scrollTop = msgsBox.scrollHeight;
@@ -2042,9 +2068,8 @@ def serve_frontend(request: Request, page: str = "home", lang: str = None, succe
                     body: JSON.stringify({{ message: msg, user_name: '{username}', lang: '{current_lang}' }})
                 }});
                 const data = await res.json();
-                loadingDiv.innerText = data.reply;
+                loadingDiv.innerHTML = data.reply;
                 
-                // Soma jibu la AI kwa sauti
                 speakText(data.reply);
 
             }} catch(err) {{
